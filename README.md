@@ -24,3 +24,7 @@ Just open `index.html` in any browser — no build, no dependencies, works offli
 - **Sill hook:** a top cleat that drops over the sill edge so the ramp can't slide
 
 The geometry is an honest first cut — measure your actual sill before cutting.
+
+## License
+
+[MIT](LICENSE) © 2026 Chris DiBona.
