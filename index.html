@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cat Ramp Cut Sheet Generator</title>
+<style>
+  :root{
+    --bg:#f6f5f1; --panel:#ffffff; --ink:#23201b; --muted:#6b665d;
+    --line:#ddd8cf; --accent:#b5651d; --accent2:#3a6ea5; --good:#2e7d32; --bad:#c0392b;
+    --wood:#d9a066; --wood-dark:#b5651d; --leg:#7a5230;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--ink);
+  }
+  header{
+    padding:22px 20px 14px; border-bottom:1px solid var(--line); background:var(--panel);
+  }
+  header h1{margin:0 0 4px; font-size:22px}
+  header p{margin:0; color:var(--muted); max-width:760px}
+  .wrap{display:grid; grid-template-columns:340px 1fr; gap:0; min-height:calc(100vh - 92px)}
+  @media (max-width:880px){ .wrap{grid-template-columns:1fr} }
+  .controls{
+    padding:18px 18px 60px; border-right:1px solid var(--line); background:var(--panel);
+  }
+  .controls h2{font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:22px 0 8px}
+  .controls h2:first-child{margin-top:0}
+  .field{margin-bottom:11px}
+  .field label{display:block; font-size:13px; margin-bottom:3px}
+  .field .row{display:flex; align-items:center; gap:8px}
+  .field input[type=number]{
+    width:100%; padding:7px 8px; border:1px solid var(--line); border-radius:6px; font-size:15px;
+    background:#fff; color:var(--ink);
+  }
+  .field .unit{color:var(--muted); font-size:13px; min-width:18px}
+  .field .hint{font-size:11.5px; color:var(--muted); margin-top:2px}
+  .field.checkbox .row{justify-content:flex-start}
+  .field.checkbox label{margin:0; cursor:pointer}
+  .btns{margin-top:20px; display:flex; gap:8px; flex-wrap:wrap}
+  button{
+    font:inherit; padding:9px 14px; border-radius:7px; border:1px solid var(--line);
+    background:#fff; cursor:pointer; color:var(--ink);
+  }
+  button.primary{background:var(--accent); color:#fff; border-color:var(--accent)}
+  button:hover{filter:brightness(.97)}
+  .main{padding:20px 24px 80px; overflow:auto}
+  .alert{padding:10px 12px; border-radius:8px; margin-bottom:16px; font-size:14px}
+  .alert.bad{background:#fdecea; color:var(--bad); border:1px solid #f5c6c0}
+  .alert.ok{background:#eaf5ea; color:var(--good); border:1px solid #c3e3c4}
+  .cards{display:flex; flex-wrap:wrap; gap:12px; margin-bottom:22px}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px; min-width:130px;
+  }
+  .card .k{font-size:12px; color:var(--muted)}
+  .card .v{font-size:21px; font-weight:600; margin-top:2px}
+  .card .v small{font-size:13px; font-weight:400; color:var(--muted)}
+  section.block{margin-bottom:28px}
+  section.block > h3{font-size:16px; margin:0 0 10px; padding-bottom:6px; border-bottom:2px solid var(--line)}
+  .diagrams{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px}
+  .diagram{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px}
+  .diagram h4{margin:0 0 6px; font-size:14px}
+  .diagram svg{width:100%; height:auto; display:block; background:#fffdf8; border-radius:6px}
+  table{width:100%; border-collapse:collapse; background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden}
+  th,td{padding:9px 12px; text-align:left; border-bottom:1px solid var(--line); font-size:14px; vertical-align:top}
+  th{background:#f1efe9; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted)}
+  tr:last-child td{border-bottom:none}
+  td.qty{text-align:center; width:48px; font-weight:600}
+  td.dim{white-space:nowrap; font-variant-numeric:tabular-nums}
+  .matgroup td.matname{font-weight:600; background:#faf8f3}
+  .note{color:var(--muted); font-size:13px; margin-top:8px}
+  .legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-top:8px}
+  .legend span{display:inline-flex; align-items:center; gap:5px}
+  .sw{width:13px; height:13px; border-radius:3px; display:inline-block; border:1px solid rgba(0,0,0,.2)}
+  footer{padding:16px 24px 40px; color:var(--muted); font-size:12.5px; border-top:1px solid var(--line)}
+  a{color:var(--accent2)}
+  @media print{
+    .controls,header p,.btns,footer{display:none}
+    .wrap{grid-template-columns:1fr}
+    body{background:#fff}
+    .card,.diagram,table{break-inside:avoid}
+    .main{padding:0}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🐾 Cat Ramp Cut Sheet Generator</h1>
+  <p>A folding window-sill ramp with side wings to keep your cat from jumping off (and overextending a healing injury). Adjust any dimension and the cut list, lumber takeoff, and diagrams update live. Print or save to PDF for the shop.</p>
+</header>
+
+<div class="wrap">
+  <!-- ============ CONTROLS ============ -->
+  <aside class="controls">
+    <h2>Core dimensions</h2>
+    <div class="field">
+      <label for="sillW">Sill width (ramp width)</label>
+      <div class="row"><input type="number" id="sillW" value="34" step="0.25" min="1"><span class="unit">in</span></div>
+      <div class="hint">Width of the walking surface, matched to the sill.</div>
+    </div>
+    <div class="field">
+      <label for="sillH">Sill height off ground</label>
+      <div class="row"><input type="number" id="sillH" value="23" step="0.25" min="1"><span class="unit">in</span></div>
+    </div>
+    <div class="field">
+      <label for="rampL">Ramp length (sill → floor, along slope)</label>
+      <div class="row"><input type="number" id="rampL" value="50" step="0.25" min="1"><span class="unit">in</span></div>
+      <div class="hint">The sloped length of the deck (the hypotenuse).</div>
+    </div>
+
+    <h2>Materials</h2>
+    <div class="field">
+      <label for="deckTh">Deck / wing sheet thickness</label>
+      <div class="row"><input type="number" id="deckTh" value="0.5" step="0.0625" min="0.125"><span class="unit">in</span></div>
+      <div class="hint">e.g. ½″ plywood = 0.5. Light but stiff enough at this width.</div>
+    </div>
+
+    <h2>Side wings</h2>
+    <div class="field">
+      <label for="wingTop">Wing height at sill (top)</label>
+      <div class="row"><input type="number" id="wingTop" value="11" step="0.25" min="0"><span class="unit">in</span></div>
+      <div class="hint">Tall here so he can't hop off near the top.</div>
+    </div>
+    <div class="field">
+      <label for="wingBase">Wing height at base (floor)</label>
+      <div class="row"><input type="number" id="wingBase" value="2.5" step="0.25" min="0"><span class="unit">in</span></div>
+      <div class="hint">Low here for a gentle taper down to the floor.</div>
+    </div>
+
+    <h2>Traction cleats</h2>
+    <div class="field checkbox">
+      <div class="row"><input type="checkbox" id="cleatsOn" checked><label for="cleatsOn">Add grip cleats across the deck</label></div>
+    </div>
+    <div class="field">
+      <label for="cleatSpace">Cleat spacing (center to center)</label>
+      <div class="row"><input type="number" id="cleatSpace" value="4" step="0.25" min="1"><span class="unit">in</span></div>
+    </div>
+    <div class="field">
+      <label for="cleatW">Cleat stock: width × thickness</label>
+      <div class="row">
+        <input type="number" id="cleatW" value="0.75" step="0.0625" min="0.125" title="width">
+        <span class="unit">×</span>
+        <input type="number" id="cleatT" value="0.375" step="0.0625" min="0.0625" title="thickness">
+        <span class="unit">in</span>
+      </div>
+    </div>
+
+    <h2>Folding legs</h2>
+    <div class="field">
+      <label for="supH">Support height at top of ramp</label>
+      <div class="row"><input type="number" id="supH" value="23" step="0.25" min="1"><span class="unit">in</span></div>
+      <div class="hint">Usually the sill height — the legs hold the top end up at the sill.</div>
+    </div>
+    <div class="field">
+      <label for="splay">Foot splay (each leg, horizontal)</label>
+      <div class="row"><input type="number" id="splay" value="9" step="0.25" min="0"><span class="unit">in</span></div>
+      <div class="hint">How far the A-frame feet kick out fore/aft. Bigger = more stable, harder fold.</div>
+    </div>
+    <div class="field">
+      <label for="legStock">Leg stock: width × thickness</label>
+      <div class="row">
+        <input type="number" id="legStock" value="1.5" step="0.0625" min="0.5" title="width">
+        <span class="unit">×</span>
+        <input type="number" id="legStockT" value="0.75" step="0.0625" min="0.5" title="thickness">
+        <span class="unit">in</span>
+      </div>
+      <div class="hint">e.g. a ripped 1×2 ≈ 1.5 × 0.75.</div>
+    </div>
+
+    <h2>Sill hook</h2>
+    <div class="field">
+      <label for="lipDrop">Hook lip drop over sill</label>
+      <div class="row"><input type="number" id="lipDrop" value="2" step="0.25" min="0"><span class="unit">in</span></div>
+      <div class="hint">A cleat at the top that hooks over the sill edge so it can't slide.</div>
+    </div>
+
+    <div class="btns">
+      <button class="primary" onclick="window.print()">🖨 Print / Save PDF</button>
+      <button onclick="resetAll()">Reset defaults</button>
+      <button onclick="copyShareLink()">🔗 Copy link</button>
+    </div>
+  </aside>
+
+  <!-- ============ OUTPUT ============ -->
+  <main class="main">
+    <div id="alert"></div>
+
+    <div class="cards" id="cards"></div>
+
+    <section class="block">
+      <h3>Diagrams</h3>
+      <div class="diagrams">
+        <div class="diagram">
+          <h4>Side elevation</h4>
+          <svg id="svgSide" viewBox="0 0 400 260"></svg>
+        </div>
+        <div class="diagram">
+          <h4>Wing cut pattern (×2, mirror)</h4>
+          <svg id="svgWing" viewBox="0 0 400 200"></svg>
+        </div>
+        <div class="diagram">
+          <h4>Top view (deck + cleats)</h4>
+          <svg id="svgTop" viewBox="0 0 400 200"></svg>
+        </div>
+        <div class="diagram">
+          <h4>Leg A-frame (folds flat)</h4>
+          <svg id="svgLeg" viewBox="0 0 400 200"></svg>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--wood)"></i> plywood</span>
+        <span><i class="sw" style="background:var(--leg)"></i> legs / lumber</span>
+        <span><i class="sw" style="background:#000"></i> cut line</span>
+        <span><i class="sw" style="background:var(--accent2)"></i> dimension</span>
+      </div>
+    </section>
+
+    <section class="block">
+      <h3>Cut list</h3>
+      <table id="cutlist">
+        <thead><tr><th class="qty">Qty</th><th>Part</th><th>Material</th><th>Dimensions</th><th>Notes</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <p class="note" id="cutnote"></p>
+    </section>
+
+    <section class="block">
+      <h3>Materials takeoff</h3>
+      <table id="takeoff">
+        <thead><tr><th>Material</th><th>Need</th><th>Buy (suggested)</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <p class="note">Estimates include no waste factor beyond what's noted — buy a little extra. Wings are nested where possible.</p>
+    </section>
+
+    <section class="block">
+      <h3>Build notes</h3>
+      <ul id="buildnotes" class="note" style="line-height:1.7"></ul>
+    </section>
+  </main>
+</div>
+
+<footer>
+  Single self-contained page — works offline and on GitHub Pages. All math is an honest first cut; verify critical fits against your actual sill before cutting. Made for a recovering cat. 🐈‍⬛
+</footer>
+
+<script>
+"use strict";
+
+// ---- inputs registry (id -> default) ----
+const FIELDS = {
+  sillW:34, sillH:23, rampL:50, deckTh:0.5,
+  wingTop:11, wingBase:2.5,
+  cleatSpace:4, cleatW:0.75, cleatT:0.375,
+  supH:23, splay:9, legStock:1.5, legStockT:0.75,
+  lipDrop:2
+};
+const CHECKS = { cleatsOn:true };
+
+function $(id){ return document.getElementById(id); }
+function num(id){ const v=parseFloat($(id).value); return isFinite(v)?v:0; }
+function frac(x){ // pretty inches to nearest 1/16
+  const sign = x<0?"-":""; x=Math.abs(x);
+  let whole=Math.floor(x); let r=x-whole;
+  const denom=16; let n=Math.round(r*denom);
+  if(n===denom){whole++;n=0;}
+  if(n===0) return sign+whole+'"';
+  // reduce fraction
+  let g=(a,b)=>b?g(b,a%b):a; let d=denom; let gg=g(n,d); n/=gg; d/=gg;
+  return sign+(whole?whole+' ':'')+n+'/'+d+'"';
+}
+function dec(x,p=2){ return (Math.round(x*10**p)/10**p).toString(); }
+
+// ---- core compute ----
+function compute(){
+  const W=num('sillW'), H=num('sillH'), L=num('rampL'), th=num('deckTh');
+  const wTop=num('wingTop'), wBase=num('wingBase');
+  const cleatsOn=$('cleatsOn').checked, cspace=num('cleatSpace'), cw=num('cleatW'), ct=num('cleatT');
+  const supH=num('supH'), splay=num('splay'), legW=num('legStock'), legT=num('legStockT');
+  const lip=num('lipDrop');
+
+  const errs=[];
+  if(L<=H) errs.push(`Ramp length (${L}″) must be greater than the sill height (${H}″) — otherwise the ramp can't reach the floor.`);
+  const run = L>H ? Math.sqrt(L*L - H*H) : 0;
+  const angle = run>0 ? Math.atan2(H,run)*180/Math.PI : 0;
+  if(angle>40) errs.push(`Slope is ${dec(angle,1)}° — that's steep for a recovering cat. Consider a longer ramp.`);
+  if(wBase>wTop) errs.push(`Wing base height (${wBase}″) is taller than the top (${wTop}″) — that's an upward taper, probably not what you want.`);
+
+  // wing geometry: trapezoid, bottom edge = L, heights wTop (top end) -> wBase (base end)
+  const wingTopEdge = Math.sqrt(L*L + (wTop-wBase)*(wTop-wBase)); // sloped top edge length
+
+  // deck interior width between wings (wings mounted on top of deck edges)
+  const innerW = Math.max(0, W - 2*th);
+
+  // cleats
+  let nCleats=0;
+  if(cleatsOn && cspace>0){ nCleats = Math.max(0, Math.floor(L/cspace)-1); } // leave ends clear
+
+  // legs: A-frame holding the top end at supH. apex at deck underside, two legs splay +/- splay (fore/aft)
+  const legLen = Math.sqrt(supH*supH + splay*splay);
+  const legAngle = Math.atan2(supH, splay)*180/Math.PI;
+
+  return {W,H,L,th,wTop,wBase,run,angle,wingTopEdge,innerW,cleatsOn,cspace,cw,ct,nCleats,
+          supH,splay,legW,legT,legLen,legAngle,lip,errs};
+}
+
+// ---- render cards ----
+function renderCards(d){
+  const c=[
+    ['Horizontal run', frac(d.run), 'floor footprint, sill→base'],
+    ['Slope angle', dec(d.angle,1)+'°', d.angle<=22?'easy':d.angle<=30?'moderate':'steep'],
+    ['Walking width', frac(d.innerW), 'between wings'],
+    ['Leg length', frac(d.legLen), dec(d.legAngle,0)+'° from floor'],
+    ['Grip cleats', d.cleatsOn? d.nCleats : '—', d.cleatsOn? 'every '+d.cspace+'″':'off'],
+  ];
+  $('cards').innerHTML = c.map(([k,v,s])=>
+    `<div class="card"><div class="k">${k}</div><div class="v">${v} <small>${s||''}</small></div></div>`).join('');
+}
+
+// ---- alerts ----
+function renderAlert(d){
+  const a=$('alert');
+  if(d.errs.length){
+    a.innerHTML = d.errs.map(e=>`<div class="alert bad">⚠ ${e}</div>`).join('');
+  } else {
+    a.innerHTML = `<div class="alert ok">✓ Geometry checks out. Slope ${dec(d.angle,1)}°, run ${frac(d.run)}.</div>`;
+  }
+}
+
+// ---- SVG helpers ----
+function svgEl(id){ return $(id); }
+function fitScale(wld_w, wld_h, vb_w, vb_h, pad){
+  const s=Math.min((vb_w-2*pad)/wld_w,(vb_h-2*pad)/wld_h);
+  return s;
+}
+function line(x1,y1,x2,y2,stroke='#000',w=1.5,dash=''){
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${w}" ${dash?`stroke-dasharray="${dash}"`:''}/>`;
+}
+function poly(pts,fill,stroke='#000',w=1.5){
+  return `<polygon points="${pts.map(p=>p.join(',')).join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="${w}"/>`;
+}
+function txt(x,y,s,fill='var(--accent2)',anchor='middle',size=11){
+  return `<text x="${x}" y="${y}" fill="${fill}" font-size="${size}" text-anchor="${anchor}" font-family="sans-serif">${s}</text>`;
+}
+
+// side elevation
+function drawSide(d){
+  const vb_w=400, vb_h=260, pad=34;
+  const W_=d.run||d.L, H_=Math.max(d.H, d.supH);
+  const s=fitScale(W_,H_,vb_w,vb_h,pad);
+  const ox=pad, oy=vb_h-pad; // origin bottom-left (floor at left = base? we'll put base at left)
+  // base at left (0,0 floor), top at right (run, H)
+  const fx=x=>ox + x*s, fy=y=>oy - y*s;
+  let g='';
+  // ground
+  g+=line(ox-6, oy, vb_w-10, oy, '#bbb', 2);
+  // ramp deck (thick line) from base(0,0) to top(run,H)
+  g+=line(fx(0),fy(0), fx(d.run),fy(d.H), 'var(--wood-dark)', 5);
+  // wing profile shadow (top height tapering) - draw above deck along slope
+  // approximate wing top line offset perpendicular; simple: at top add wTop vertical, base add wBase
+  g+=line(fx(0),fy(d.wBase), fx(d.run),fy(d.H+d.wTop), 'var(--wood)', 1.5, '4 3');
+  // legs A-frame at top
+  const tx=d.run, ty=d.H;
+  g+=line(fx(tx),fy(ty), fx(tx+d.splay),fy(0), 'var(--leg)', 4); // leg fore
+  g+=line(fx(tx),fy(ty), fx(tx-d.splay),fy(0), 'var(--leg)', 4); // leg aft
+  // dims
+  g+=line(fx(d.run)+14,fy(0), fx(d.run)+14,fy(d.H), 'var(--accent2)',1);
+  g+=txt(fx(d.run)+22, (fy(0)+fy(d.H))/2, frac(d.H),'var(--accent2)','start');
+  g+=txt((fx(0)+fx(d.run))/2, oy+20, 'run '+frac(d.run));
+  g+=txt((fx(0)+fx(d.run))/2-10, (fy(0)+fy(d.H))/2-8, frac(d.L)+' deck','#7a5230','middle');
+  g+=txt(fx(0)-4, oy+20, 'base','#7a5230','start');
+  g+=txt(fx(d.run)-4, fy(d.H)-8, 'sill','#7a5230','end');
+  svgEl('svgSide').innerHTML=g;
+}
+
+// wing cut pattern (trapezoid)
+function drawWing(d){
+  const vb_w=400, vb_h=200, pad=30;
+  const W_=d.L, H_=Math.max(d.wTop,d.wBase,1);
+  const s=fitScale(W_,H_,vb_w,vb_h,pad);
+  const ox=pad, oy=vb_h-pad;
+  const fx=x=>ox+x*s, fy=y=>oy-y*s;
+  // coords: top end at left (x=0) height wTop, base end at right (x=L) height wBase
+  const pts=[[fx(0),fy(0)],[fx(d.L),fy(0)],[fx(d.L),fy(d.wBase)],[fx(0),fy(d.wTop)]];
+  let g=poly(pts,'var(--wood)','#000',1.5);
+  // labels
+  g+=txt((fx(0)+fx(d.L))/2, oy+18, 'bottom edge '+frac(d.L)+' (mounts to deck)');
+  g+=txt(fx(0)-4, fy(d.wTop/2), frac(d.wTop),'var(--accent2)','end');
+  g+=txt(fx(d.L)+4, fy(d.wBase/2), frac(d.wBase),'var(--accent2)','start');
+  g+=txt((fx(0)+fx(d.L))/2, fy((d.wTop+d.wBase)/2)-4, 'top edge '+frac(d.wingTopEdge),'#000','middle');
+  g+=txt(fx(0)+2, fy(d.wTop)-4,'sill end','#7a5230','start');
+  g+=txt(fx(d.L)-2, fy(d.wBase)-4,'floor end','#7a5230','end');
+  svgEl('svgWing').innerHTML=g;
+}
+
+// top view
+function drawTop(d){
+  const vb_w=400, vb_h=200, pad=26;
+  const s=fitScale(d.L,d.W,vb_w,vb_h,pad);
+  const ox=pad, oy=pad;
+  const fx=x=>ox+x*s, fy=y=>oy+y*s;
+  let g=poly([[fx(0),fy(0)],[fx(d.L),fy(0)],[fx(d.L),fy(d.W)],[fx(0),fy(d.W)]],'var(--wood)','#000',1.5);
+  // wings as edges
+  g+=line(fx(0),fy(d.th),fx(d.L),fy(d.th),'var(--wood-dark)',3);
+  g+=line(fx(0),fy(d.W-d.th),fx(d.L),fy(d.W-d.th),'var(--wood-dark)',3);
+  // cleats
+  if(d.cleatsOn && d.nCleats>0){
+    for(let i=1;i<=d.nCleats;i++){
+      const x=i*d.cspace;
+      g+=line(fx(x),fy(d.th),fx(x),fy(d.W-d.th),'var(--leg)',2);
+    }
+  }
+  // sill hook at top end (x=0)
+  g+=line(fx(0),fy(0),fx(0),fy(d.W),'#000',4);
+  g+=txt((fx(0)+fx(d.L))/2, fy(d.W)+18, 'length '+frac(d.L));
+  g+=txt(fx(0)-6, (fy(0)+fy(d.W))/2, frac(d.W),'var(--accent2)','end');
+  g+=txt(fx(0)+4, fy(0)-4,'sill hook end','#000','start');
+  svgEl('svgTop').innerHTML=g;
+}
+
+// leg A-frame
+function drawLeg(d){
+  const vb_w=400, vb_h=200, pad=30;
+  const W_=2*d.splay||1, H_=d.supH;
+  const s=fitScale(W_,H_,vb_w,vb_h,pad);
+  const ox=vb_w/2, oy=vb_h-pad;
+  const fx=x=>ox+x*s, fy=y=>oy-y*s;
+  let g='';
+  g+=line(ox-90,oy,ox+90,oy,'#bbb',2); // floor
+  g+=line(fx(0),fy(d.supH), fx(d.splay),fy(0),'var(--leg)',5);
+  g+=line(fx(0),fy(d.supH), fx(-d.splay),fy(0),'var(--leg)',5);
+  // link/pivot at apex
+  g+=`<circle cx="${fx(0)}" cy="${fy(d.supH)}" r="4" fill="#000"/>`;
+  g+=txt(fx(0)+8, fy(d.supH)+2, 'link pin','#000','start');
+  g+=txt((fx(0)+fx(d.splay))/2+6,(fy(d.supH)+fy(0))/2,'leg '+frac(d.legLen),'var(--accent2)','start');
+  g+=txt(fx(0), oy+18, 'feet '+frac(2*d.splay)+' apart');
+  g+=txt(fx(0)-6, fy(d.supH/2), frac(d.supH),'var(--accent2)','end');
+  svgEl('svgLeg').innerHTML=g;
+}
+
+// ---- cut list ----
+function renderCutlist(d){
+  const tb=$('cutlist').querySelector('tbody');
+  const sheetMat = `${frac(d.th)} plywood`;
+  const rows=[];
+
+  rows.push(['matgroup','', 'Sheet goods','','','']);
+  rows.push(['',1,'Ramp deck', sheetMat, `${frac(d.L)} × ${frac(d.W)}`, 'The walking surface; sill end is one short edge.']);
+  rows.push(['',2,'Side wing', sheetMat,
+    `bottom ${frac(d.L)}, top edge ${frac(d.wingTopEdge)}, heights ${frac(d.wTop)}→${frac(d.wBase)}`,
+    'Right-trapezoid. Tall at sill end, low at floor end. Cut one, flip to mirror.']);
+
+  rows.push(['matgroup','', 'Lumber','','','']);
+  rows.push(['',4,'Leg', `${frac(d.legW)} × ${frac(d.legT)}`, `${frac(d.legLen)} long`,
+    `Two pairs. ${dec(d.legAngle,0)}° to floor. Round/miter the feet so they sit flat.`]);
+  rows.push(['',2,'Leg cross-link', `${frac(d.legW)} × ${frac(d.legT)}`, `${frac(d.innerW)} long`,
+    'Ties each leg pair together; the two pairs link at the apex pin.']);
+  rows.push(['',1,'Sill hook cleat', `${frac(d.legW)} × ${frac(Math.max(d.lip,d.legT))}`, `${frac(d.W)} long`,
+    `Mounts under the top edge, drops ${frac(d.lip)} to hook over the sill.`]);
+
+  if(d.cleatsOn && d.nCleats>0){
+    rows.push(['matgroup','', 'Traction','','','']);
+    rows.push(['',d.nCleats,'Grip cleat', `${frac(d.cw)} × ${frac(d.ct)}`, `${frac(d.innerW)} long`,
+      `Across the deck every ${frac(d.cspace)}, between the wings.`]);
+  }
+
+  rows.push(['matgroup','', 'Hardware','','','']);
+  rows.push(['',2,'Hinge (leg pivot)', '—', 'butt or piano', 'Hinges each leg pair to the deck underside so they fold flat.']);
+  rows.push(['',1,'Link pin / barrel bolt', '—', '—', 'Joins the two leg pairs at the apex; pull to fold.']);
+  rows.push(['',2,'Pad / non-slip foot', '—', '—', 'On the floor feet and at the base of the ramp.']);
+
+  tb.innerHTML = rows.map(r=>{
+    if(r[0]==='matgroup') return `<tr class="matgroup"><td colspan="5" class="matname">${r[2]}</td></tr>`;
+    return `<tr><td class="qty">${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td class="dim">${r[4]}</td><td>${r[5]}</td></tr>`;
+  }).join('');
+
+  $('cutnote').textContent = `Inner (between-wing) width is ${frac(d.innerW)}, assuming wings sit on top of the deck's long edges. If you instead butt the deck between the wings, set widths accordingly.`;
+}
+
+// ---- takeoff ----
+function renderTakeoff(d){
+  const tb=$('takeoff').querySelector('tbody');
+  // sheet area: deck + 2 wings bounding boxes
+  const deckA = d.L*d.W;
+  const wingBox = d.L*d.wTop; // bounding box per wing
+  const totalSheet = deckA + 2*wingBox;
+  const sqft = totalSheet/144;
+  const sheet48x96 = 48*96; // 32 sqft
+  const sheets = Math.max(1, Math.ceil(totalSheet/sheet48x96 * 1.15)); // 15% waste
+
+  // leg lumber linear inches
+  const legLin = 4*d.legLen + 2*d.innerW + d.W; // legs + crosslinks + sill cleat
+  const cleatLin = (d.cleatsOn? d.nCleats*d.innerW : 0);
+  const legFt = legLin/12, cleatFt=cleatLin/12;
+
+  const rows=[
+    [`${frac(d.th)} plywood`, `${dec(sqft,1)} sq ft (deck + 2 wings, nested)`, `${sheets} × 4×8 sheet${sheets>1?'s':''} (or a 2×4 handy panel if it fits)`],
+    [`Leg/frame stock ${frac(d.legW)}×${frac(d.legT)}`, `${dec(legFt,1)} lin ft`, `${Math.ceil(legFt/8 *1.1)} × 8 ft length${Math.ceil(legFt/8*1.1)>1?'s':''}`],
+  ];
+  if(d.cleatsOn && d.nCleats>0){
+    rows.push([`Cleat stock ${frac(d.cw)}×${frac(d.ct)}`, `${dec(cleatFt,1)} lin ft (${d.nCleats} pcs)`, `${Math.ceil(cleatFt/8*1.1)} × 8 ft length${Math.ceil(cleatFt/8*1.1)>1?'s':''} (or rip from scrap)`]);
+  }
+  rows.push(['Fasteners & glue', 'wood glue + 1¼″ screws/brads', '1 box screws, 1 bottle glue']);
+  rows.push(['Finish (optional)', 'low-VOC poly or paint + carpet/grip tape', 'cat-safe finish; carpet runner for traction']);
+
+  tb.innerHTML = rows.map(r=>`<tr><td>${r[0]}</td><td class="dim">${r[1]}</td><td>${r[2]}</td></tr>`).join('');
+}
+
+// ---- build notes ----
+function renderNotes(d){
+  const notes=[
+    `<b>Slope:</b> ${dec(d.angle,1)}° (rise ${frac(d.H)} over run ${frac(d.run)}). For a recovering cat, gentler is kinder — lengthen the ramp to drop the angle if he hesitates.`,
+    `<b>Wings:</b> each is a right-trapezoid that runs the full ${frac(d.L)} of the deck, ${frac(d.wTop)} tall at the sill tapering to ${frac(d.wBase)} at the floor. Glue + screw them standing on the deck's long edges so there's no side gap to slip through.`,
+    `<b>Folding legs:</b> two leg pairs hinge to the deck underside near the top. They swing down and meet at a center <i>link pin</i>, forming an A-frame ${frac(d.legLen)} per leg that holds the top at ${frac(d.supH)}. Pull the pin and both pairs fold flat for storage.`,
+    `<b>Sill hook:</b> the top cleat drops ${frac(d.lip)} over the sill lip so the ramp can't creep sideways or slide off.`,
+    d.cleatsOn ? `<b>Traction:</b> ${d.nCleats} grip cleats every ${frac(d.cspace)} give his claws something to grab on the climb. A strip of carpet works too.` : `<b>Traction:</b> cleats are off — add carpet or grip tape so he doesn't slip.`,
+    `<b>Weight & tip:</b> ½″ ply keeps it light to fold. If it feels flexy at ${frac(d.W)} wide, add a center rib under the deck or bump to ⅝″.`,
+  ];
+  $('buildnotes').innerHTML = notes.map(n=>`<li>${n}</li>`).join('');
+}
+
+// ---- main refresh ----
+function refresh(){
+  const d=compute();
+  renderAlert(d);
+  renderCards(d);
+  drawSide(d); drawWing(d); drawTop(d); drawLeg(d);
+  renderCutlist(d);
+  renderTakeoff(d);
+  renderNotes(d);
+  saveURL(d);
+}
+
+// ---- persistence via URL hash ----
+function saveURL(){
+  const params=new URLSearchParams();
+  for(const k in FIELDS) params.set(k,$(k).value);
+  for(const k in CHECKS) params.set(k,$(k).checked?1:0);
+  history.replaceState(null,'','#'+params.toString());
+}
+function loadURL(){
+  if(!location.hash) return;
+  const p=new URLSearchParams(location.hash.slice(1));
+  for(const k in FIELDS){ if(p.has(k)) $(k).value=p.get(k); }
+  for(const k in CHECKS){ if(p.has(k)) $(k).checked=p.get(k)==='1'; }
+}
+function resetAll(){
+  for(const k in FIELDS) $(k).value=FIELDS[k];
+  for(const k in CHECKS) $(k).checked=CHECKS[k];
+  refresh();
+}
+function copyShareLink(){
+  navigator.clipboard.writeText(location.href).then(
+    ()=>alert('Link copied — it encodes all your dimensions.'),
+    ()=>alert('Copy failed; copy the URL from the address bar.')
+  );
+}
+
+// ---- wire up ----
+Object.keys(FIELDS).concat(Object.keys(CHECKS)).forEach(k=>{
+  $(k).addEventListener('input',refresh);
+  $(k).addEventListener('change',refresh);
+});
+loadURL();
+refresh();
+</script>
+</body>
+</html>
