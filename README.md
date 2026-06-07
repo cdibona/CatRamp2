@@ -1,8 +1,10 @@
 # Cat Ramp Cut Sheet Generator
 
-A single-file web app that produces a printable **cut sheet, lumber takeoff, and diagrams** for a folding, window-sill cat ramp with side "wings" — built to keep a recovering cat from jumping off the sides and overextending.
+**▶ Live tool: https://cdibona.github.io/CatRamp2/**
 
-Everything is adjustable: sill width/height, ramp length, wing heights, traction cleats, folding-leg geometry, and the sill hook. All inputs are encoded in the URL, so a copied link reproduces your exact design.
+A single-file web app that produces a printable **cut sheet, lumber takeoff, a 3D view, and shop diagrams** for a folding, window-sill cat ramp with side "wings" — built to keep a recovering cat from jumping off the sides and overextending.
+
+Everything is adjustable: sill width/height, ramp length, wing reach, traction cleats, folding-leg geometry, and the sill hook. All inputs are encoded in the URL, so a copied link reproduces your exact design.
 
 ## Use it
 
@@ -19,7 +21,7 @@ Just open `index.html` in any browser — no build, no dependencies, works offli
 
 - **Sill:** 34″ wide, 23″ off the ground
 - **Ramp:** 50″ along the slope (≈27° — gentle)
-- **Wings:** tall at the sill, tapering gently to the floor, flush so there's no side gap to slip through
+- **Wings:** flat triangular panels (not upright walls). Each one attaches along the ramp's side edge and fans down to the floor — **flush against the window wall** (no gap) and **flush to the floor** (no lip). Widest at the sill, tapering to nothing at the base. A bigger *wing reach* makes the surface gentler at the cost of a wider footprint.
 - **Folding legs:** two leg pairs hinge under the deck and meet at a center link pin to form an A-frame; pull the pin and it folds flat
 - **Sill hook:** a top cleat that drops over the sill edge so the ramp can't slide
 
