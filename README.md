@@ -22,8 +22,11 @@ Just open `index.html` in any browser — no build, no dependencies, works offli
 - **Sill:** 34″ wide, 23″ off the ground
 - **Ramp:** 50″ along the slope (≈27° — gentle)
 - **Wings:** flat triangular panels (not upright walls). Each one attaches along the ramp's side edge and fans down to the floor — **flush against the window wall** (no gap) and **flush to the floor** (no lip). Widest at the sill, tapering to nothing at the base. A bigger *wing reach* makes the surface gentler at the cost of a wider footprint.
-- **Folding legs:** two leg pairs hinge under the deck and meet at a center link pin to form an A-frame; pull the pin and it folds flat
+- **Support (pick one):** a folding **A-frame** (two leg pairs that link at a center pin and fold flat), or **wall posts** (two vertical posts under the top corners with a floor tie back to the ramp base)
+- **Carpet:** computes coverage for the deck + both wings and the running length from a roll width you set
 - **Sill hook:** a top cleat that drops over the sill edge so the ramp can't slide
+
+The cut list includes the **wing corner angles** (they sum to 180°) so you can lay the triangle out by angle as well as by edge length.
 
 The geometry is an honest first cut — measure your actual sill before cutting.
 

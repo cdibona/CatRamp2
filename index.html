@@ -122,26 +122,43 @@
       </div>
     </div>
 
-    <h2>Folding legs</h2>
+    <h2>Carpet</h2>
+    <div class="field">
+      <label for="carpetW">Carpet roll width</label>
+      <div class="row"><input type="number" id="carpetW" value="36" step="0.5" min="1"><span class="unit">in</span></div>
+      <div class="hint">Width of the roll/runner you'll buy (runners ≈ 27–36″, broadloom ≈ 144″). Covers deck + both wings.</div>
+    </div>
+
+    <h2>Support</h2>
+    <div class="field">
+      <label for="supportType">Holds the top up with…</label>
+      <div class="row">
+        <select id="supportType" style="width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:6px;font-size:15px;background:#fff;color:var(--ink)">
+          <option value="aframe">Folding A-frame (links at a pin)</option>
+          <option value="posts">Wall posts + floor tie</option>
+        </select>
+      </div>
+      <div class="hint" id="supportHint"></div>
+    </div>
     <div class="field">
       <label for="supH">Support height at top of ramp</label>
       <div class="row"><input type="number" id="supH" value="23" step="0.25" min="1"><span class="unit">in</span></div>
-      <div class="hint">Usually the sill height — the legs hold the top end up at the sill.</div>
+      <div class="hint">Usually the sill height — holds the top end up at the sill.</div>
     </div>
-    <div class="field">
+    <div class="field" id="splayField">
       <label for="splay">Foot splay (each leg, horizontal)</label>
       <div class="row"><input type="number" id="splay" value="9" step="0.25" min="0"><span class="unit">in</span></div>
-      <div class="hint">How far the A-frame feet kick out. Bigger = steadier, bulkier fold.</div>
+      <div class="hint">A-frame only — how far the feet kick out. Bigger = steadier, bulkier fold.</div>
     </div>
     <div class="field">
-      <label for="legStock">Leg stock: width × thickness</label>
+      <label for="legStock">Leg / post stock: width × thickness</label>
       <div class="row">
         <input type="number" id="legStock" value="1.5" step="0.0625" min="0.5" title="width">
         <span class="unit">×</span>
         <input type="number" id="legStockT" value="0.75" step="0.0625" min="0.5" title="thickness">
         <span class="unit">in</span>
       </div>
-      <div class="hint">e.g. a ripped 1×2 ≈ 1.5 × 0.75.</div>
+      <div class="hint">e.g. a ripped 1×2 ≈ 1.5 × 0.75. Posts may want something beefier (2×2).</div>
     </div>
 
     <h2>Sill hook</h2>
@@ -172,7 +189,7 @@
           <span><i class="sw" style="background:var(--wing)"></i> wing (flush to wall + floor)</span>
           <span><i class="sw" style="background:var(--wall)"></i> window wall</span>
           <span><i class="sw" style="background:var(--glass)"></i> window</span>
-          <span><i class="sw" style="background:var(--leg)"></i> folding legs</span>
+          <span><i class="sw" style="background:var(--leg)"></i> support legs/posts</span>
         </div>
         <p class="note" id="note3d"></p>
       </div>
@@ -181,10 +198,10 @@
     <section class="block">
       <h3>Shop diagrams</h3>
       <div class="diagrams">
-        <div class="diagram"><h4>Side elevation (slope + legs)</h4><svg id="svgSide" viewBox="0 0 400 240"></svg></div>
+        <div class="diagram"><h4>Side elevation (slope + support)</h4><svg id="svgSide" viewBox="0 0 400 240"></svg></div>
         <div class="diagram"><h4>Wing cut pattern (×2, mirror)</h4><svg id="svgWing" viewBox="0 0 400 220"></svg></div>
         <div class="diagram"><h4>Plan / footprint (top down)</h4><svg id="svgTop" viewBox="0 0 400 240"></svg></div>
-        <div class="diagram"><h4>Leg A-frame (folds flat)</h4><svg id="svgLeg" viewBox="0 0 400 200"></svg></div>
+        <div class="diagram"><h4 id="legTitle">Support detail</h4><svg id="svgLeg" viewBox="0 0 400 200"></svg></div>
       </div>
     </section>
 
@@ -218,10 +235,12 @@ const FIELDS = {
   sillW:34, sillH:23, rampL:50, deckTh:0.5,
   wingReach:18,
   cleatSpace:4, cleatW:0.75, cleatT:0.375,
+  carpetW:36,
   supH:23, splay:9, legStock:1.5, legStockT:0.75,
   lipDrop:2
 };
 const CHECKS = { cleatsOn:true };
+const SELECTS = { supportType:'aframe' };
 
 function $(id){ return document.getElementById(id); }
 function num(id){ const v=parseFloat($(id).value); return isFinite(v)?v:0; }
@@ -242,7 +261,9 @@ function compute(){
   const d=num('wingReach');
   const cleatsOn=$('cleatsOn').checked, cspace=num('cleatSpace'), cw=num('cleatW'), ct=num('cleatT');
   const supH=num('supH'), splay=num('splay'), legW=num('legStock'), legT=num('legStockT');
+  const support=$('supportType').value;
   const lip=num('lipDrop');
+  const carpetW=num('carpetW');
 
   const errs=[];
   if(L<=H) errs.push(`Ramp length (${L}″) must exceed the sill height (${H}″) so it can reach the floor.`);
@@ -268,25 +289,50 @@ function compute(){
   const sideSlopeTop = d>0 ? Math.atan2(H,d) : Math.PI/2;    // steepest line, at the wall
   const footprintW = W + 2*d;
 
+  // wing corner angles (flat triangle, law of cosines)
+  const safeAcos=v=>Math.acos(Math.max(-1,Math.min(1,v)));
+  const angSill = safeAcos((ab*ab+ac*ac-bc*bc)/(2*ab*ac)); // at A: ramp edge ∠ wall edge
+  const angBase = safeAcos((ab*ab+bc*bc-ac*ac)/(2*ab*bc)); // at B: ramp edge ∠ floor edge
+  const angOuter= safeAcos((ac*ac+bc*bc-ab*ab)/(2*ac*bc)); // at C: wall edge ∠ floor edge
+
   const innerW = Math.max(0, W-2*th);
   let nCleats=0;
   if(cleatsOn && cspace>0) nCleats = Math.max(0, Math.floor(L/cspace)-1);
 
-  const legLen=Math.sqrt(supH*supH+splay*splay);
+  // ---- support ----
+  const legLen=Math.sqrt(supH*supH+splay*splay);     // A-frame leg
   const legAngle=Math.atan2(supH,splay);
+  const postH=supH;                                  // vertical post
+  const floorTie=run;                                // base→wall tie along floor
+
+  // ---- carpet (deck + both wings), bought as a roll of width carpetW ----
+  const deckA=L*W;
+  const coverArea=deckA + 2*wingArea;                // sq in to carpet
+  const carpetWaste=1.25;
+  const carpetRunIn = carpetW>0 ? coverArea*carpetWaste/carpetW : 0; // running length
+  const carpetRunFt = carpetRunIn/12;
+  const carpetSqFt = coverArea/144;
+  const carpetBuySqYd = coverArea*carpetWaste/1296;
+  const deckStrips = carpetW>0 ? Math.ceil(W/carpetW) : 1;
 
   return {W,H,L,th,d,run,angle,ab,ac,bc,wingArea,dip,sideSlopeTop,footprintW,
-          innerW,cleatsOn,cspace,cw,ct,nCleats,supH,splay,legW,legT,legLen,legAngle,lip,errs};
+          angSill,angBase,angOuter,
+          innerW,cleatsOn,cspace,cw,ct,nCleats,
+          support,supH,splay,legW,legT,legLen,legAngle,postH,floorTie,lip,
+          carpetW,coverArea,carpetRunFt,carpetSqFt,carpetBuySqYd,deckStrips,errs};
 }
 
 // ---------- cards / alert ----------
 function renderCards(D){
+  const supCard = D.support==='posts'
+    ? ['Post height', frac(D.postH), 'vertical at wall']
+    : ['Leg length', frac(D.legLen), dec(deg(D.legAngle),0)+'° to floor'];
   const c=[
     ['Slope angle', dec(deg(D.angle),1)+'°', deg(D.angle)<=22?'easy':deg(D.angle)<=30?'moderate':'steep'],
-    ['Horizontal run', frac(D.run), 'sill → base'],
     ['Footprint width', frac(D.footprintW), 'incl. both wings'],
     ['Wing surface slope', dec(deg(D.dip),0)+'°', 'lower = gentler'],
-    ['Leg length', frac(D.legLen), dec(deg(D.legAngle),0)+'° to floor'],
+    supCard,
+    ['Carpet', dec(D.carpetRunFt,1)+' ft', 'of '+frac(D.carpetW)+'-wide roll'],
   ];
   $('cards').innerHTML=c.map(([k,v,s])=>`<div class="card"><div class="k">${k}</div><div class="v">${v} <small>${s||''}</small></div></div>`).join('');
 }
@@ -343,14 +389,22 @@ function draw3D(D){
       g+=LN([0,run*u,H*(1-u)],[W,run*u,H*(1-u)],'#7a5230',1.4);
     }
   }
-  // folding legs: illustrative A-frame under the deck near the top.
-  // Top rests at the wall, so the A-frame opens forward (away from the wall).
-  const hingeY=Math.min(6, run*0.25), hz=H*(1-hingeY/run);
-  [W*0.5].forEach(xs=>{
-    const apex=[xs, hingeY, hz-D.th];
-    g+=LN(apex,[xs, hingeY+D.splay, 0],'var(--leg)',4);
-    g+=LN(apex,[xs, Math.max(hingeY-D.splay,0.5), 0],'var(--leg)',4);
-  });
+  // support
+  if(D.support==='posts'){
+    // vertical posts under each top corner + floor ties back to the ramp base
+    [0,W].forEach(xs=>{
+      g+=LN([xs,1,H-D.th],[xs,1,0],'var(--leg)',5);          // post
+      g+=LN([xs,1,0],[xs,run,0],'var(--leg)',3);             // floor tie to base
+    });
+  } else {
+    // folding A-frame under the deck near the top; opens forward (away from wall)
+    const hingeY=Math.min(6, run*0.25), hz=H*(1-hingeY/run);
+    [W*0.5].forEach(xs=>{
+      const apex=[xs, hingeY, hz-D.th];
+      g+=LN(apex,[xs, hingeY+D.splay, 0],'var(--leg)',4);
+      g+=LN(apex,[xs, Math.max(hingeY-D.splay,0.5), 0],'var(--leg)',4);
+    });
+  }
   // labels
   g+=TX([-d,0,0],'wing flush to wall+floor','#9c7038','end',10);
   g+=TX([W/2,run+12,0],'footprint '+frac(D.footprintW)+' wide','var(--accent2)','middle',10);
@@ -373,9 +427,15 @@ function drawSide(D){
   g+=line(ox-6,oy,vbw-10,oy,'#bbb',2);                              // ground
   g+=poly([[fx(0),fy(0)],[fx(D.run),fy(D.H)],[fx(D.run),fy(0)]],'#f3e6d2','#cdbcab',1); // slope wedge
   g+=line(fx(0),fy(0),fx(D.run),fy(D.H),'var(--wood-dark)',5);      // deck
-  // legs A-frame near top
-  g+=line(fx(D.run),fy(D.H),fx(D.run-D.splay),fy(0),'var(--leg)',4);
-  g+=line(fx(D.run),fy(D.H),fx(Math.min(D.run+D.splay,D.run)),fy(0),'var(--leg)',4);
+  // support near the top (right end = wall)
+  if(D.support==='posts'){
+    g+=line(fx(D.run),fy(D.H),fx(D.run),fy(0),'var(--leg)',5);        // vertical post at wall
+    g+=line(fx(D.run),fy(0),fx(0),fy(0),'var(--leg)',3);             // floor tie base→wall
+    g+=txt(fx(D.run)-6,fy(D.H/2),'post '+frac(D.postH),'var(--leg)','end');
+  } else {
+    g+=line(fx(D.run),fy(D.H),fx(D.run-D.splay),fy(0),'var(--leg)',4);
+    g+=line(fx(D.run),fy(D.H),fx(Math.min(D.run+D.splay,D.run)),fy(0),'var(--leg)',4);
+  }
   // dims
   g+=line(fx(D.run)+14,fy(0),fx(D.run)+14,fy(D.H),'var(--accent2)',1);
   g+=txt(fx(D.run)+20,(fy(0)+fy(D.H))/2,frac(D.H),'var(--accent2)','start');
@@ -405,9 +465,9 @@ function drawWing(D){
   g+=txt((A[0]+B[0])/2,oy+18,'ramp-side edge '+frac(ab),'#6b4310');
   g+=txt((A[0]+C[0])/2-6,(A[1]+C[1])/2,'wall '+frac(ac),'var(--accent2)','end');
   g+=txt((B[0]+C[0])/2+6,(B[1]+C[1])/2,'floor '+frac(bc),'var(--accent2)','start');
-  g+=txt(A[0],A[1]+14,'sill corner','#000','middle');
-  g+=txt(B[0],B[1]+14,'base corner','#000','middle');
-  g+=txt(C[0],C[1]-6,'outer floor corner','#000','middle');
+  g+=txt(A[0]-2,A[1]+15,'sill corner '+dec(deg(D.angSill),0)+'°','#000','start');
+  g+=txt(B[0]+2,B[1]+15,'base corner '+dec(deg(D.angBase),0)+'°','#000','end');
+  g+=txt(C[0],C[1]-6,'outer corner '+dec(deg(D.angOuter),0)+'°','#000','middle');
   $('svgWing').innerHTML=g;
 }
 
@@ -438,22 +498,40 @@ function drawTop(D){
   $('svgTop').innerHTML=g;
 }
 
-// ---------- leg A-frame ----------
+// ---------- support detail ----------
 function drawLeg(D){
+  $('legTitle').textContent = D.support==='posts' ? 'Wall post + floor tie (×2)' : 'Leg A-frame (folds flat)';
   const vbw=400, vbh=200, pad=30;
-  const Wd=Math.max(2*D.splay,1), Ht=Math.max(D.supH,1);
-  const s=fitScale(Wd,Ht,vbw,vbh,pad);
-  const ox=vbw/2, oy=vbh-pad;
-  const X=x=>ox+x*s, Y=y=>oy-y*s;
   let g='';
-  g+=line(ox-100,oy,ox+100,oy,'#bbb',2);
-  g+=line(X(0),Y(D.supH),X(D.splay),Y(0),'var(--leg)',5);
-  g+=line(X(0),Y(D.supH),X(-D.splay),Y(0),'var(--leg)',5);
-  g+=`<circle cx="${X(0)}" cy="${Y(D.supH)}" r="4" fill="#000"/>`;
-  g+=txt(X(0)+8,Y(D.supH)+2,'link pin','#000','start');
-  g+=txt((X(0)+X(D.splay))/2+6,(Y(D.supH)+Y(0))/2,'leg '+frac(D.legLen),'var(--accent2)','start');
-  g+=txt(X(0),oy+18,'feet '+frac(2*D.splay)+' apart');
-  g+=txt(X(0)-6,Y(D.supH/2),frac(D.supH),'var(--accent2)','end');
+  if(D.support==='posts'){
+    const Wd=Math.max(D.floorTie,1), Ht=Math.max(D.postH,1);
+    const s=fitScale(Wd,Ht,vbw,vbh,pad);
+    const ox=vbw-pad, oy=vbh-pad;             // wall at right
+    const X=x=>ox-x*s, Y=y=>oy-y*s;           // x = distance from wall toward base
+    g+=line(ox-Wd*s-10,oy,ox+10,oy,'#bbb',2);                 // ground
+    g+=line(X(0),oy,X(0),oy-Ht*s-12,'var(--wall)','3');       // wall
+    g+=line(X(0),Y(D.postH),X(0),Y(0),'var(--leg)',6);        // post
+    g+=line(X(0),Y(0),X(D.floorTie),Y(0),'var(--leg)',4);     // floor tie
+    g+=line(X(0),Y(D.postH),X(D.floorTie),Y(0),'var(--wood-dark)',3,'5 4'); // ramp (ref)
+    g+=txt(X(0)-6,Y(D.postH/2),'post '+frac(D.postH),'var(--accent2)','end');
+    g+=txt(X(D.floorTie/2),oy+16,'floor tie '+frac(D.floorTie),'var(--accent2)','middle');
+    g+=txt(X(D.floorTie*0.55),Y(D.postH*0.55)-4,'ramp','#6b4310','middle');
+    g+=`<circle cx="${X(0)}" cy="${Y(D.postH)}" r="3.5" fill="#000"/>`;
+    g+=txt(X(0)-6,Y(D.postH)-6,'sill','#000','end');
+  } else {
+    const Wd=Math.max(2*D.splay,1), Ht=Math.max(D.supH,1);
+    const s=fitScale(Wd,Ht,vbw,vbh,pad);
+    const ox=vbw/2, oy=vbh-pad;
+    const X=x=>ox+x*s, Y=y=>oy-y*s;
+    g+=line(ox-100,oy,ox+100,oy,'#bbb',2);
+    g+=line(X(0),Y(D.supH),X(D.splay),Y(0),'var(--leg)',5);
+    g+=line(X(0),Y(D.supH),X(-D.splay),Y(0),'var(--leg)',5);
+    g+=`<circle cx="${X(0)}" cy="${Y(D.supH)}" r="4" fill="#000"/>`;
+    g+=txt(X(0)+8,Y(D.supH)+2,'link pin','#000','start');
+    g+=txt((X(0)+X(D.splay))/2+6,(Y(D.supH)+Y(0))/2,'leg '+frac(D.legLen),'var(--accent2)','start');
+    g+=txt(X(0),oy+18,'feet '+frac(2*D.splay)+' apart');
+    g+=txt(X(0)-6,Y(D.supH/2),frac(D.supH),'var(--accent2)','end');
+  }
   $('svgLeg').innerHTML=g;
 }
 
@@ -466,32 +544,46 @@ function renderCutlist(D){
   rows.push(['',1,'Ramp deck',sheet,`${frac(D.L)} × ${frac(D.W)}`,'Walking surface; the sill end is one short edge.']);
   rows.push(['',2,'Side wing (triangle)',sheet,
     `edges: ramp ${frac(D.ab)}, wall ${frac(D.ac)}, floor ${frac(D.bc)}`,
-    'Flat fillet. Lay out the triangle from the 3 edge lengths. Cut one, flip for the mirror. Mounts along the ramp side, flush to wall + floor.']);
+    `Flat fillet, flush to wall + floor. Corner angles — sill ${dec(deg(D.angSill),1)}°, base ${dec(deg(D.angBase),1)}°, outer ${dec(deg(D.angOuter),1)}°. Cut one, flip for the mirror.`]);
 
-  rows.push(['matgroup','','Lumber','','','']);
-  rows.push(['',4,'Leg',`${frac(D.legW)} × ${frac(D.legT)}`,`${frac(D.legLen)} long`,
-    `Two pairs. ${dec(deg(D.legAngle),0)}° to floor; miter the feet to sit flat.`]);
-  rows.push(['',2,'Leg cross-link',`${frac(D.legW)} × ${frac(D.legT)}`,`${frac(D.innerW)} long`,
-    'Ties each leg pair; pairs link at the apex pin.']);
+  rows.push(['matgroup','','Support — '+(D.support==='posts'?'wall posts':'folding A-frame'),'','','']);
+  if(D.support==='posts'){
+    rows.push(['',2,'Wall post',`${frac(D.legW)} × ${frac(D.legT)}`,`${frac(D.postH)} long`,
+      'Vertical under each top corner, carrying the sill end. Hinge or remove to stow.']);
+    rows.push(['',2,'Floor tie',`${frac(D.legW)} × ${frac(D.legT)}`,`${frac(D.floorTie)} long`,
+      'Runs along the floor from each post foot back to the ramp base so it can\'t kick out.']);
+    rows.push(['',1,'Top cross-rail',`${frac(D.legW)} × ${frac(D.legT)}`,`${frac(D.W)} long`,
+      'Ties the two post tops together under the sill.']);
+  } else {
+    rows.push(['',4,'Leg',`${frac(D.legW)} × ${frac(D.legT)}`,`${frac(D.legLen)} long`,
+      `Two pairs. ${dec(deg(D.legAngle),1)}° to floor; miter the feet to sit flat.`]);
+    rows.push(['',2,'Leg cross-link',`${frac(D.legW)} × ${frac(D.legT)}`,`${frac(D.innerW)} long`,
+      'Ties each leg pair; pairs link at the apex pin.']);
+  }
   rows.push(['',1,'Sill hook cleat',`${frac(D.legW)} × ${frac(Math.max(D.lip,D.legT))}`,`${frac(D.W)} long`,
     `Under the top edge; drops ${frac(D.lip)} to hook over the sill.`]);
 
   if(D.cleatsOn && D.nCleats>0){
     rows.push(['matgroup','','Traction','','','']);
     rows.push(['',D.nCleats,'Grip cleat',`${frac(D.cw)} × ${frac(D.ct)}`,`${frac(D.W)} long`,
-      `Across the deck every ${frac(D.cspace)}.`]);
+      `Across the deck every ${frac(D.cspace)} (skip if carpeting).`]);
   }
 
   rows.push(['matgroup','','Hardware','','','']);
-  rows.push(['',2,'Hinge (leg pivot)','—','butt/piano','Hinges each leg pair to the deck underside so they fold flat.']);
-  rows.push(['',1,'Link pin / barrel bolt','—','—','Joins the two leg pairs at the apex; pull to fold.']);
-  rows.push(['',3,'Non-slip foot/pad','—','—','Leg feet and the ramp base.']);
+  if(D.support==='posts'){
+    rows.push(['',2,'Hinge / bracket (post)','—','butt or L','Pivots or anchors each post to the deck underside.']);
+    rows.push(['',2,'Non-slip foot/pad','—','—','Post feet and the ramp base.']);
+  } else {
+    rows.push(['',2,'Hinge (leg pivot)','—','butt/piano','Hinges each leg pair to the deck underside so they fold flat.']);
+    rows.push(['',1,'Link pin / barrel bolt','—','—','Joins the two leg pairs at the apex; pull to fold.']);
+    rows.push(['',3,'Non-slip foot/pad','—','—','Leg feet and the ramp base.']);
+  }
 
   tb.innerHTML=rows.map(r=> r[0]==='matgroup'
     ? `<tr class="matgroup"><td colspan="5" class="matname">${r[2]}</td></tr>`
     : `<tr><td class="qty">${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td class="dim">${r[4]}</td><td>${r[5]}</td></tr>`).join('');
 
-  $('cutnote').textContent=`Each wing is a scalene triangle — to mark it out, strike the ${frac(D.ab)} ramp edge, then swing arcs of ${frac(D.ac)} and ${frac(D.bc)} from its ends to find the outer corner.`;
+  $('cutnote').textContent=`Each wing is a scalene triangle — strike the ${frac(D.ab)} ramp edge, swing arcs of ${frac(D.ac)} and ${frac(D.bc)} from its ends to find the outer corner. Corner angles: ${dec(deg(D.angSill),1)}° (sill), ${dec(deg(D.angBase),1)}° (base), ${dec(deg(D.angOuter),1)}° (outer) — they sum to 180°.`;
 }
 
 // ---------- takeoff ----------
@@ -501,18 +593,24 @@ function renderTakeoff(D){
   const totalSheet=deckA + 2*D.wingArea;
   const sqft=totalSheet/144;
   const sheets=Math.max(1,Math.ceil(totalSheet/(48*96)*1.2)); // 20% waste (triangles nest poorly)
-  const legLin=4*D.legLen + 2*D.innerW + D.W;
+  const frameLin = (D.support==='posts'
+      ? 2*D.postH + 2*D.floorTie + D.W      // posts + ties + top rail
+      : 4*D.legLen + 2*D.innerW)            // 4 legs + 2 cross-links
+    + D.W;                                  // sill hook cleat
   const cleatLin=(D.cleatsOn? D.nCleats*D.W:0);
-  const legFt=legLin/12, cleatFt=cleatLin/12;
-  const legLengths=Math.ceil(legFt/8*1.1), cleatLengths=Math.ceil(cleatFt/8*1.1);
+  const frameFt=frameLin/12, cleatFt=cleatLin/12;
+  const frameLengths=Math.ceil(frameFt/8*1.1), cleatLengths=Math.ceil(cleatFt/8*1.1);
 
   const rows=[
     [`${frac(D.th)} plywood`,`${dec(sqft,1)} sq ft (deck + 2 wings)`,`${sheets} × 4×8 sheet${sheets>1?'s':''} (a 2×4 handy panel may suffice)`],
-    [`Frame stock ${frac(D.legW)}×${frac(D.legT)}`,`${dec(legFt,1)} lin ft`,`${legLengths} × 8 ft length${legLengths>1?'s':''}`],
+    [`Frame stock ${frac(D.legW)}×${frac(D.legT)}`,`${dec(frameFt,1)} lin ft (${D.support==='posts'?'posts + ties':'legs + links'})`,`${frameLengths} × 8 ft length${frameLengths>1?'s':''}`],
   ];
   if(D.cleatsOn && D.nCleats>0) rows.push([`Cleat stock ${frac(D.cw)}×${frac(D.ct)}`,`${dec(cleatFt,1)} lin ft (${D.nCleats} pcs)`,`${cleatLengths} × 8 ft (or rip from scrap)`]);
+  rows.push([`Carpet (deck + wings), ${frac(D.carpetW)} wide`,
+    `${dec(D.carpetSqFt,1)} sq ft of coverage`,
+    `${dec(D.carpetRunFt,1)} running ft ≈ ${dec(D.carpetBuySqYd,1)} sq yd (incl. ~25% waste)${D.deckStrips>1?`; deck needs ${D.deckStrips} strips at this width`:''}`]);
   rows.push(['Fasteners & glue','wood glue + 1¼″ screws/brads','1 box screws, 1 bottle glue']);
-  rows.push(['Traction/finish (optional)','carpet runner or grip tape + cat-safe finish','non-toxic poly or paint']);
+  rows.push(['Finish (optional)','cat-safe poly or paint + carpet adhesive/staples','non-toxic finish']);
   tb.innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td class="dim">${r[1]}</td><td>${r[2]}</td></tr>`).join('');
 }
 
@@ -522,17 +620,28 @@ function renderNotes(D){
     `<b>Slope:</b> ${dec(deg(D.angle),1)}° (rise ${frac(D.H)} over run ${frac(D.run)}). Gentler is kinder while he heals — lengthen the ramp to drop the angle if he hesitates.`,
     `<b>Wings (the fix from v1):</b> each is a flat triangle, <i>not</i> an upright wall. It attaches along the ramp's side edge and fans down to the floor — flush against the window wall (no gap) and flush to the floor (no lip to trip on). It's ${frac(D.d)} wide at the sill and tapers to nothing at the base.`,
     `<b>Wing slope vs. footprint:</b> at ${frac(D.d)} reach the wing surface sits at ~${dec(deg(D.dip),0)}°. Increasing the reach flattens it (it approaches the ramp's own ${dec(deg(D.angle),1)}°) but widens the floor footprint to ${frac(D.footprintW)}. Pick the balance you have room for.`,
-    `<b>Folding legs:</b> two leg pairs hinge under the deck near the top, swing down and meet at a center link pin to form an A-frame (${frac(D.legLen)} per leg) holding the top at ${frac(D.supH)}. Pull the pin and both pairs fold flat.`,
+    D.support==='posts'
+      ? `<b>Support — wall posts:</b> two ${frac(D.postH)} posts stand under the top corners at the wall and carry the sill end, with a ${frac(D.floorTie)} floor tie from each post foot back to the ramp base so nothing kicks out, plus a ${frac(D.W)} cross-rail joining the post tops. Hinge the posts (or make them lift-out) to stow it flat.`
+      : `<b>Support — folding A-frame:</b> two leg pairs hinge under the deck near the top, swing down and meet at a center link pin to form an A-frame (${frac(D.legLen)} per leg) holding the top at ${frac(D.supH)}. Pull the pin and both pairs fold flat.`,
     `<b>Sill hook:</b> the top cleat drops ${frac(D.lip)} over the sill so the ramp can't creep or slide off.`,
-    D.cleatsOn ? `<b>Traction:</b> ${D.nCleats} grip cleats every ${frac(D.cspace)} give his claws purchase. A carpet runner over the deck works too — and is easy on healing joints.`
-              : `<b>Traction:</b> cleats are off — add a carpet runner or grip tape so he can't slip.`,
+    `<b>Carpet:</b> covering the deck + both wings is ${dec(D.carpetSqFt,1)} sq ft. From a ${frac(D.carpetW)}-wide roll that's about ${dec(D.carpetRunFt,1)} running ft (≈ ${dec(D.carpetBuySqYd,1)} sq yd) with waste${D.deckStrips>1?`; the deck needs ${D.deckStrips} side-by-side strips at this width, so a wider roll means fewer seams`:''}. Carpet doubles as traction and is gentle on healing joints.`,
+    D.cleatsOn ? `<b>Traction:</b> ${D.nCleats} grip cleats every ${frac(D.cspace)} give his claws purchase — though if you carpet the deck you can skip them.`
+              : `<b>Traction:</b> cleats are off — the carpet provides the grip.`,
     `<b>Stiffness:</b> ½″ ply keeps it light to fold. If ${frac(D.W)} wide feels springy, add a center rib under the deck or step up to ⅝″.`,
   ];
   $('buildnotes').innerHTML=notes.map(n=>`<li>${n}</li>`).join('');
 }
 
 // ---------- refresh / persistence ----------
+function syncSupportUI(){
+  const posts = $('supportType').value==='posts';
+  $('splayField').style.display = posts ? 'none' : '';
+  $('supportHint').textContent = posts
+    ? 'Two vertical posts under the top corners at the wall, tied to the ramp base along the floor.'
+    : 'Two leg pairs that swing down and join at a center pin, then fold flat.';
+}
 function refresh(){
+  syncSupportUI();
   const D=compute();
   renderAlert(D); renderCards(D);
   draw3D(D); drawSide(D); drawWing(D); drawTop(D); drawLeg(D);
@@ -543,6 +652,7 @@ function saveURL(){
   const p=new URLSearchParams();
   for(const k in FIELDS) p.set(k,$(k).value);
   for(const k in CHECKS) p.set(k,$(k).checked?1:0);
+  for(const k in SELECTS) p.set(k,$(k).value);
   history.replaceState(null,'','#'+p.toString());
 }
 function loadURL(){
@@ -550,11 +660,12 @@ function loadURL(){
   const p=new URLSearchParams(location.hash.slice(1));
   for(const k in FIELDS){ if(p.has(k)) $(k).value=p.get(k); }
   for(const k in CHECKS){ if(p.has(k)) $(k).checked=p.get(k)==='1'; }
+  for(const k in SELECTS){ if(p.has(k)) $(k).value=p.get(k); }
 }
-function resetAll(){ for(const k in FIELDS)$(k).value=FIELDS[k]; for(const k in CHECKS)$(k).checked=CHECKS[k]; refresh(); }
+function resetAll(){ for(const k in FIELDS)$(k).value=FIELDS[k]; for(const k in CHECKS)$(k).checked=CHECKS[k]; for(const k in SELECTS)$(k).value=SELECTS[k]; refresh(); }
 function copyShareLink(){ navigator.clipboard.writeText(location.href).then(()=>alert('Link copied — it encodes every dimension.'),()=>alert('Copy failed; copy the URL from the address bar.')); }
 
-Object.keys(FIELDS).concat(Object.keys(CHECKS)).forEach(k=>{ $(k).addEventListener('input',refresh); $(k).addEventListener('change',refresh); });
+Object.keys(FIELDS).concat(Object.keys(CHECKS),Object.keys(SELECTS)).forEach(k=>{ $(k).addEventListener('input',refresh); $(k).addEventListener('change',refresh); });
 loadURL(); refresh();
 </script>
 </body>
