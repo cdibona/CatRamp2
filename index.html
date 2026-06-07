@@ -106,7 +106,7 @@
 
     <h2>Traction cleats</h2>
     <div class="field checkbox">
-      <div class="row"><input type="checkbox" id="cleatsOn" checked><label for="cleatsOn">Add grip cleats across the deck</label></div>
+      <div class="row"><input type="checkbox" id="cleatsOn"><label for="cleatsOn">Add grip cleats across the deck</label></div>
     </div>
     <div class="field">
       <label for="cleatSpace">Cleat spacing (center to center)</label>
@@ -239,7 +239,7 @@ const FIELDS = {
   supH:23, splay:9, legStock:1.5, legStockT:0.75,
   lipDrop:2
 };
-const CHECKS = { cleatsOn:true };
+const CHECKS = { cleatsOn:false };
 const SELECTS = { supportType:'aframe' };
 
 function $(id){ return document.getElementById(id); }
