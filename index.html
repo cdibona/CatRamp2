@@ -160,6 +160,10 @@
       </div>
       <div class="hint">e.g. a ripped 1×2 ≈ 1.5 × 0.75. Posts may want something beefier (2×2).</div>
     </div>
+    <div class="field checkbox" id="floorTiesField">
+      <div class="row"><input type="checkbox" id="floorTiesOn" checked><label for="floorTiesOn">Add floor runners (post foot → ramp base)</label></div>
+      <div class="hint">Keep the post feet from kicking out. Optional if the hinge + sill hook hold things.</div>
+    </div>
 
     <h2>Sill hook</h2>
     <div class="field">
@@ -239,7 +243,7 @@ const FIELDS = {
   supH:23, splay:9, legStock:1.5, legStockT:0.75,
   lipDrop:2
 };
-const CHECKS = { cleatsOn:false };
+const CHECKS = { cleatsOn:false, floorTiesOn:true };
 const SELECTS = { supportType:'aframe' };
 
 function $(id){ return document.getElementById(id); }
@@ -304,6 +308,10 @@ function compute(){
   const legAngle=Math.atan2(supH,splay);
   const postH=supH;                                  // vertical post
   const floorTie=run;                                // base→wall tie along floor
+  const floorTiesOn=$('floorTiesOn').checked;
+  const postTopAngle=Math.PI/2 - angle;              // ramp ∠ vertical post (hinge/bevel) = 90°−slope
+  const rampFloorAngle=angle;                        // ramp ∠ floor at the base = slope
+  const postSpacing=W;                               // beam length between the two corner posts
 
   // ---- carpet (deck + both wings), bought as a roll of width carpetW ----
   const deckA=L*W;
@@ -318,14 +326,15 @@ function compute(){
   return {W,H,L,th,d,run,angle,ab,ac,bc,wingArea,dip,sideSlopeTop,footprintW,
           angSill,angBase,angOuter,
           innerW,cleatsOn,cspace,cw,ct,nCleats,
-          support,supH,splay,legW,legT,legLen,legAngle,postH,floorTie,lip,
+          support,supH,splay,legW,legT,legLen,legAngle,
+          postH,floorTie,floorTiesOn,postTopAngle,rampFloorAngle,postSpacing,lip,
           carpetW,coverArea,carpetRunFt,carpetSqFt,carpetBuySqYd,deckStrips,errs};
 }
 
 // ---------- cards / alert ----------
 function renderCards(D){
   const supCard = D.support==='posts'
-    ? ['Post height', frac(D.postH), 'vertical at wall']
+    ? ['Post height', frac(D.postH), 'hinge top at '+dec(deg(D.postTopAngle),0)+'°']
     : ['Leg length', frac(D.legLen), dec(deg(D.legAngle),0)+'° to floor'];
   const c=[
     ['Slope angle', dec(deg(D.angle),1)+'°', deg(D.angle)<=22?'easy':deg(D.angle)<=30?'moderate':'steep'],
@@ -391,10 +400,10 @@ function draw3D(D){
   }
   // support
   if(D.support==='posts'){
-    // vertical posts under each top corner + floor ties back to the ramp base
+    // vertical posts under each top corner (+ optional floor ties back to the ramp base)
     [0,W].forEach(xs=>{
       g+=LN([xs,1,H-D.th],[xs,1,0],'var(--leg)',5);          // post
-      g+=LN([xs,1,0],[xs,run,0],'var(--leg)',3);             // floor tie to base
+      if(D.floorTiesOn) g+=LN([xs,1,0],[xs,run,0],'var(--leg)',3); // floor tie to base
     });
   } else {
     // folding A-frame under the deck near the top; opens forward (away from wall)
@@ -430,8 +439,10 @@ function drawSide(D){
   // support near the top (right end = wall)
   if(D.support==='posts'){
     g+=line(fx(D.run),fy(D.H),fx(D.run),fy(0),'var(--leg)',5);        // vertical post at wall
-    g+=line(fx(D.run),fy(0),fx(0),fy(0),'var(--leg)',3);             // floor tie base→wall
+    if(D.floorTiesOn) g+=line(fx(D.run),fy(0),fx(0),fy(0),'var(--leg)',3); // floor tie base→wall
     g+=txt(fx(D.run)-6,fy(D.H/2),'post '+frac(D.postH),'var(--leg)','end');
+    g+=txt(fx(D.run)-14,fy(D.H)+4,dec(deg(D.postTopAngle),1)+'°','var(--accent2)','end');   // post-top hinge
+    g+=txt(fx(0)+18,fy(0)-5,dec(deg(D.rampFloorAngle),1)+'°','var(--accent2)','start');     // ramp at floor
   } else {
     g+=line(fx(D.run),fy(D.H),fx(D.run-D.splay),fy(0),'var(--leg)',4);
     g+=line(fx(D.run),fy(D.H),fx(Math.min(D.run+D.splay,D.run)),fy(0),'var(--leg)',4);
@@ -510,14 +521,17 @@ function drawLeg(D){
     const X=x=>ox-x*s, Y=y=>oy-y*s;           // x = distance from wall toward base
     g+=line(ox-Wd*s-10,oy,ox+10,oy,'#bbb',2);                 // ground
     g+=line(X(0),oy,X(0),oy-Ht*s-12,'var(--wall)','3');       // wall
-    g+=line(X(0),Y(D.postH),X(0),Y(0),'var(--leg)',6);        // post
-    g+=line(X(0),Y(0),X(D.floorTie),Y(0),'var(--leg)',4);     // floor tie
+    if(D.floorTiesOn) g+=line(X(0),Y(0),X(D.floorTie),Y(0),'var(--leg)',4);     // floor tie
     g+=line(X(0),Y(D.postH),X(D.floorTie),Y(0),'var(--wood-dark)',3,'5 4'); // ramp (ref)
+    g+=line(X(0),Y(D.postH),X(0),Y(0),'var(--leg)',6);        // post (drawn last, on top)
     g+=txt(X(0)-6,Y(D.postH/2),'post '+frac(D.postH),'var(--accent2)','end');
-    g+=txt(X(D.floorTie/2),oy+16,'floor tie '+frac(D.floorTie),'var(--accent2)','middle');
-    g+=txt(X(D.floorTie*0.55),Y(D.postH*0.55)-4,'ramp','#6b4310','middle');
+    if(D.floorTiesOn) g+=txt(X(D.floorTie/2),oy+16,'floor runner '+frac(D.floorTie),'var(--accent2)','middle');
+    g+=txt(X(D.floorTie*0.5),Y(D.postH*0.5)-4,'ramp','#6b4310','middle');
+    // angle callouts
+    g+=txt(X(0)+14,Y(D.postH)+5,dec(deg(D.postTopAngle),1)+'° hinge','var(--accent2)','start');
+    g+=txt(X(D.floorTie)-6,Y(0)-5,dec(deg(D.rampFloorAngle),1)+'° at floor','var(--accent2)','end');
     g+=`<circle cx="${X(0)}" cy="${Y(D.postH)}" r="3.5" fill="#000"/>`;
-    g+=txt(X(0)-6,Y(D.postH)-6,'sill','#000','end');
+    g+=txt(X(0)-6,Y(D.postH)-6,'sill / hinge','#000','end');
   } else {
     const Wd=Math.max(2*D.splay,1), Ht=Math.max(D.supH,1);
     const s=fitScale(Wd,Ht,vbw,vbh,pad);
@@ -544,16 +558,16 @@ function renderCutlist(D){
   rows.push(['',1,'Ramp deck',sheet,`${frac(D.L)} × ${frac(D.W)}`,'Walking surface; the sill end is one short edge.']);
   rows.push(['',2,'Side wing (triangle)',sheet,
     `edges: ramp ${frac(D.ab)}, wall ${frac(D.ac)}, floor ${frac(D.bc)}`,
-    `Flat fillet, flush to wall + floor. Corner angles — sill ${dec(deg(D.angSill),1)}°, base ${dec(deg(D.angBase),1)}°, outer ${dec(deg(D.angOuter),1)}°. Cut one, flip for the mirror.`]);
+    `Flat fillet, flush to wall + floor. Corner angles — sill ${dec(deg(D.angSill),1)}°, base ${dec(deg(D.angBase),1)}°, outer ${dec(deg(D.angOuter),1)}°. Hung on the ramp side edge with loose-pin hinges so it lifts off. Cut one, flip for the mirror.`]);
 
   rows.push(['matgroup','','Support — '+(D.support==='posts'?'wall posts':'folding A-frame'),'','','']);
   if(D.support==='posts'){
     rows.push(['',2,'Wall post',`${frac(D.legW)} × ${frac(D.legT)}`,`${frac(D.postH)} long`,
-      'Vertical under each top corner, carrying the sill end. Hinge or remove to stow.']);
-    rows.push(['',2,'Floor tie',`${frac(D.legW)} × ${frac(D.legT)}`,`${frac(D.floorTie)} long`,
-      'Runs along the floor from each post foot back to the ramp base so it can\'t kick out.']);
-    rows.push(['',1,'Top cross-rail',`${frac(D.legW)} × ${frac(D.legT)}`,`${frac(D.W)} long`,
-      'Ties the two post tops together under the sill.']);
+      `Vertical under each top corner. Hinge the top to the ramp at ${dec(deg(D.postTopAngle),1)}° (the ramp sits ${dec(deg(D.rampFloorAngle),1)}° off the post-top square cut).`]);
+    if(D.floorTiesOn) rows.push(['',2,'Floor runner',`${frac(D.legW)} × ${frac(D.legT)}`,`${frac(D.floorTie)} long`,
+      'Optional — runs along the floor from each post foot back to the ramp base so it can\'t kick out.']);
+    rows.push(['',1,'Support beam (post top ↔ post top)',`${frac(D.legW)} × ${frac(D.legT)}`,`${frac(D.postSpacing)} long`,
+      `Spans between the two post tops under the sill — the posts sit ${frac(D.postSpacing)} apart.`]);
   } else {
     rows.push(['',4,'Leg',`${frac(D.legW)} × ${frac(D.legT)}`,`${frac(D.legLen)} long`,
       `Two pairs. ${dec(deg(D.legAngle),1)}° to floor; miter the feet to sit flat.`]);
@@ -570,8 +584,9 @@ function renderCutlist(D){
   }
 
   rows.push(['matgroup','','Hardware','','','']);
+  rows.push(['',4,'Loose-pin hinge (wing)','—','removable pin','Two per wing along the ramp side edge — pull the pins to lift the wings off for disassembly.']);
   if(D.support==='posts'){
-    rows.push(['',2,'Hinge / bracket (post)','—','butt or L','Pivots or anchors each post to the deck underside.']);
+    rows.push(['',2,'Hinge (post top → ramp)','—','butt','Hinges each post to the underside of the ramp top so they swing in to stow.']);
     rows.push(['',2,'Non-slip foot/pad','—','—','Post feet and the ramp base.']);
   } else {
     rows.push(['',2,'Hinge (leg pivot)','—','butt/piano','Hinges each leg pair to the deck underside so they fold flat.']);
@@ -609,8 +624,9 @@ function renderTakeoff(D){
   rows.push([`Carpet (deck + wings), ${frac(D.carpetW)} wide`,
     `${dec(D.carpetSqFt,1)} sq ft of coverage`,
     `${dec(D.carpetRunFt,1)} running ft ≈ ${dec(D.carpetBuySqYd,1)} sq yd (incl. ~25% waste)${D.deckStrips>1?`; deck needs ${D.deckStrips} strips at this width`:''}`]);
+  rows.push([`Carpet tape (double-sided)`,`≈ ${Math.ceil(D.carpetRunFt*2)} ft (perimeter + cross strips)`,`1–2 rolls of ${D.carpetW>=24?2:1.5}″-wide double-sided carpet tape`]);
   rows.push(['Fasteners & glue','wood glue + 1¼″ screws/brads','1 box screws, 1 bottle glue']);
-  rows.push(['Finish (optional)','cat-safe poly or paint + carpet adhesive/staples','non-toxic finish']);
+  rows.push(['Finish (optional)','cat-safe poly or paint','non-toxic finish']);
   tb.innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td class="dim">${r[1]}</td><td>${r[2]}</td></tr>`).join('');
 }
 
@@ -618,10 +634,10 @@ function renderTakeoff(D){
 function renderNotes(D){
   const notes=[
     `<b>Slope:</b> ${dec(deg(D.angle),1)}° (rise ${frac(D.H)} over run ${frac(D.run)}). Gentler is kinder while he heals — lengthen the ramp to drop the angle if he hesitates.`,
-    `<b>Wings (the fix from v1):</b> each is a flat triangle, <i>not</i> an upright wall. It attaches along the ramp's side edge and fans down to the floor — flush against the window wall (no gap) and flush to the floor (no lip to trip on). It's ${frac(D.d)} wide at the sill and tapers to nothing at the base.`,
+    `<b>Wings:</b> each is a flat triangle, <i>not</i> an upright wall. It hangs on the ramp's side edge with two loose-pin (removable-pin) hinges and fans down to the floor — flush against the window wall (no gap) and flush to the floor (no lip). It's ${frac(D.d)} wide at the sill and tapers to nothing at the base; pull the pins to lift both wings off when you break it down.`,
     `<b>Wing slope vs. footprint:</b> at ${frac(D.d)} reach the wing surface sits at ~${dec(deg(D.dip),0)}°. Increasing the reach flattens it (it approaches the ramp's own ${dec(deg(D.angle),1)}°) but widens the floor footprint to ${frac(D.footprintW)}. Pick the balance you have room for.`,
     D.support==='posts'
-      ? `<b>Support — wall posts:</b> two ${frac(D.postH)} posts stand under the top corners at the wall and carry the sill end, with a ${frac(D.floorTie)} floor tie from each post foot back to the ramp base so nothing kicks out, plus a ${frac(D.W)} cross-rail joining the post tops. Hinge the posts (or make them lift-out) to stow it flat.`
+      ? `<b>Support — wall posts:</b> two ${frac(D.postH)} posts stand under the top corners and carry the sill end. Hinge each post top to the underside of the ramp at <b>${dec(deg(D.postTopAngle),1)}°</b> (i.e. the ramp lands ${dec(deg(D.rampFloorAngle),1)}° off a square post-top cut). A ${frac(D.postSpacing)} support beam joins the post tops — the posts sit <b>${frac(D.postSpacing)}</b> apart. ${D.floorTiesOn?`${frac(D.floorTie)} floor runners tie each post foot back to the ramp base so it can't kick out.`:`Floor runners are off — the post-top hinges and the sill hook resist kick-out; add runners back if it feels loose.`}`
       : `<b>Support — folding A-frame:</b> two leg pairs hinge under the deck near the top, swing down and meet at a center link pin to form an A-frame (${frac(D.legLen)} per leg) holding the top at ${frac(D.supH)}. Pull the pin and both pairs fold flat.`,
     `<b>Sill hook:</b> the top cleat drops ${frac(D.lip)} over the sill so the ramp can't creep or slide off.`,
     `<b>Carpet:</b> covering the deck + both wings is ${dec(D.carpetSqFt,1)} sq ft. From a ${frac(D.carpetW)}-wide roll that's about ${dec(D.carpetRunFt,1)} running ft (≈ ${dec(D.carpetBuySqYd,1)} sq yd) with waste${D.deckStrips>1?`; the deck needs ${D.deckStrips} side-by-side strips at this width, so a wider roll means fewer seams`:''}. Carpet doubles as traction and is gentle on healing joints.`,
@@ -636,8 +652,9 @@ function renderNotes(D){
 function syncSupportUI(){
   const posts = $('supportType').value==='posts';
   $('splayField').style.display = posts ? 'none' : '';
+  $('floorTiesField').style.display = posts ? '' : 'none';
   $('supportHint').textContent = posts
-    ? 'Two vertical posts under the top corners at the wall, tied to the ramp base along the floor.'
+    ? 'Two vertical posts under the top corners, hinged to the ramp top. Floor runners optional.'
     : 'Two leg pairs that swing down and join at a center pin, then fold flat.';
 }
 function refresh(){
