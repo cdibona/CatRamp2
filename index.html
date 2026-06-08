@@ -112,11 +112,11 @@
     <div class="field checkbox">
       <div class="row"><input type="checkbox" id="cleatsOn"><label for="cleatsOn">Add grip cleats across the deck</label></div>
     </div>
-    <div class="field">
+    <div class="field" id="cleatSpaceField">
       <label for="cleatSpace">Cleat spacing (center to center)</label>
       <div class="row"><input type="number" id="cleatSpace" value="4" step="0.25" min="1"><span class="unit">in</span></div>
     </div>
-    <div class="field">
+    <div class="field" id="cleatStockField">
       <label for="cleatW">Cleat stock: width × thickness</label>
       <div class="row">
         <input type="number" id="cleatW" value="0.75" step="0.0625" min="0.125" title="width">
@@ -171,7 +171,10 @@
     </div>
 
     <h2>Sill hook</h2>
-    <div class="field">
+    <div class="field checkbox">
+      <div class="row"><input type="checkbox" id="sillHookOn" checked><label for="sillHookOn">Add a sill hook cleat</label></div>
+    </div>
+    <div class="field" id="lipDropField">
       <label for="lipDrop">Hook lip drop over sill</label>
       <div class="row"><input type="number" id="lipDrop" value="2" step="0.25" min="0"><span class="unit">in</span></div>
       <div class="hint">A cleat at the top that hooks over the sill edge so it can't slide.</div>
@@ -248,7 +251,7 @@ const FIELDS = {
   supH:23, splay:9, legStock:1.5, legStockT:0.75,
   lipDrop:2
 };
-const CHECKS = { wingsOn:true, cleatsOn:false, floorTiesOn:true };
+const CHECKS = { wingsOn:true, cleatsOn:false, floorTiesOn:true, sillHookOn:true };
 const SELECTS = { supportType:'postsFold' };
 
 function $(id){ return document.getElementById(id); }
@@ -273,6 +276,7 @@ function compute(){
   const supH=num('supH'), splay=num('splay'), legW=num('legStock'), legT=num('legStockT');
   const support=$('supportType').value;
   const postMode = support==='posts' || support==='postsFold';
+  const sillHookOn=$('sillHookOn').checked;
   const lip=num('lipDrop');
   const carpetW=num('carpetW');
 
@@ -335,7 +339,7 @@ function compute(){
           angSill,angBase,angOuter,
           innerW,cleatsOn,cspace,cw,ct,nCleats,
           support,postMode,supH,splay,legW,legT,legLen,legAngle,
-          postH,floorTie,floorTiesOn,postTopAngle,rampFloorAngle,postSpacing,nCrossBeams,lip,
+          postH,floorTie,floorTiesOn,postTopAngle,rampFloorAngle,postSpacing,nCrossBeams,sillHookOn,lip,
           carpetW,coverArea,carpetRunFt,carpetSqFt,carpetBuySqYd,deckStrips,errs};
 }
 
@@ -597,7 +601,7 @@ function renderCutlist(D){
     rows.push(['',2,'Leg cross-link',`${frac(D.legW)} × ${frac(D.legT)}`,`${frac(D.innerW)} long`,
       'Ties each leg pair; pairs link at the apex pin.']);
   }
-  rows.push(['',1,'Sill hook cleat',`${frac(D.legW)} × ${frac(Math.max(D.lip,D.legT))}`,`${frac(D.W)} long`,
+  if(D.sillHookOn) rows.push(['',1,'Sill hook cleat',`${frac(D.legW)} × ${frac(Math.max(D.lip,D.legT))}`,`${frac(D.W)} long`,
     `Under the top edge; drops ${frac(D.lip)} to hook over the sill.`]);
 
   if(D.cleatsOn && D.nCleats>0){
@@ -636,7 +640,7 @@ function renderTakeoff(D){
   const frameLin = (D.postMode
       ? 2*D.postH + (D.floorTiesOn?2*D.floorTie:0) + D.nCrossBeams*D.postSpacing  // posts + (ties) + cross beams
       : 4*D.legLen + 2*D.innerW)            // 4 legs + 2 cross-links
-    + D.W;                                  // sill hook cleat
+    + (D.sillHookOn? D.W : 0);              // sill hook cleat
   const cleatLin=(D.cleatsOn? D.nCleats*D.W:0);
   const frameFt=frameLin/12, cleatFt=cleatLin/12;
   const frameLengths=Math.ceil(frameFt/8*1.1), cleatLengths=Math.ceil(cleatFt/8*1.1);
@@ -668,7 +672,9 @@ function renderNotes(D){
   notes.push(D.postMode
     ? `<b>Support — ${D.support==='postsFold'?'folding wall posts':'wall posts'}:</b> two ${frac(D.postH)} posts stand under the top corners, hinged to the underside of the ramp top at <b>${dec(deg(D.postTopAngle),1)}°</b> (the ramp lands ${dec(deg(D.rampFloorAngle),1)}° off a square post-top cut) so they fold back flat against the deck to stow. <b>${D.nCrossBeams} cross beams</b> span across the post tops, ${frac(D.postSpacing)} apart, to lock the two posts together. ${D.floorTiesOn?`${frac(D.floorTie)} floor runners tie each post foot back to the ramp base so nothing kicks out.`:`No floor runners — the post-top hinges, cross beams and sill hook hold it; switch to “wall posts + floor runners” if you want the extra anti-kick bracing.`}`
     : `<b>Support — folding A-frame:</b> two leg pairs hinge under the deck near the top, swing down and meet at a center link pin to form an A-frame (${frac(D.legLen)} per leg) holding the top at ${frac(D.supH)}. Pull the pin and both pairs fold flat.`);
-  notes.push(`<b>Sill hook:</b> the top cleat drops ${frac(D.lip)} over the sill so the ramp can't creep or slide off.`);
+  notes.push(D.sillHookOn
+    ? `<b>Sill hook:</b> the top cleat drops ${frac(D.lip)} over the sill so the ramp can't creep or slide off.`
+    : `<b>Sill hook:</b> off — nothing locks the top to the sill, so lean it firmly and rely on the support to hold position. Add the hook back if it creeps.`);
   notes.push(`<b>Carpet:</b> covering the deck${D.wingsOn?' + both wings':''} is ${dec(D.carpetSqFt,1)} sq ft. From a ${frac(D.carpetW)}-wide roll that's about ${dec(D.carpetRunFt,1)} running ft (≈ ${dec(D.carpetBuySqYd,1)} sq yd) with waste${D.deckStrips>1?`; the deck needs ${D.deckStrips} side-by-side strips at this width, so a wider roll means fewer seams`:''}. Carpet doubles as traction and is gentle on healing joints.`);
   notes.push(D.cleatsOn ? `<b>Traction:</b> ${D.nCleats} grip cleats every ${frac(D.cspace)} give his claws purchase — though if you carpet the deck you can skip them.`
             : `<b>Traction:</b> cleats are off — the carpet provides the grip.`);
@@ -682,6 +688,10 @@ function syncSupportUI(){
   $('splayField').style.display = v==='aframe' ? '' : 'none';
   $('floorTiesField').style.display = v==='posts' ? '' : 'none';     // runners only in the runner variant
   $('wingReachField').style.display = $('wingsOn').checked ? '' : 'none';
+  const cl=$('cleatsOn').checked;
+  $('cleatSpaceField').style.display = cl ? '' : 'none';
+  $('cleatStockField').style.display = cl ? '' : 'none';
+  $('lipDropField').style.display = $('sillHookOn').checked ? '' : 'none';
   $('supportHint').textContent =
     v==='posts'     ? 'Two posts under the top corners, hinged to the ramp top, with floor runners back to the base and 2 cross beams between the posts.' :
     v==='postsFold' ? 'Two posts hinged to the ramp top that fold back flat — no floor runners, just the 2 cross beams between them.' :
