@@ -138,8 +138,8 @@
       <label for="supportType">Holds the top up with…</label>
       <div class="row">
         <select id="supportType" style="width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:6px;font-size:15px;background:#fff;color:var(--ink)">
+          <option value="postsFold">Folding wall posts + 2 cross beams (no runners)</option>
           <option value="posts">Wall posts + floor runners</option>
-          <option value="postsFold">Folding wall posts (hinged, no runners)</option>
           <option value="aframe">Folding A-frame (links at a pin)</option>
         </select>
       </div>
@@ -249,7 +249,7 @@ const FIELDS = {
   lipDrop:2
 };
 const CHECKS = { wingsOn:true, cleatsOn:false, floorTiesOn:true };
-const SELECTS = { supportType:'posts' };
+const SELECTS = { supportType:'postsFold' };
 
 function $(id){ return document.getElementById(id); }
 function num(id){ const v=parseFloat($(id).value); return isFinite(v)?v:0; }
