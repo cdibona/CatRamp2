@@ -101,7 +101,7 @@
     <h2>Side wings (flat fillets)</h2>
     <div class="field">
       <label for="wingReach">Wing reach (sideways at the wall)</label>
-      <div class="row"><input type="number" id="wingReach" value="18" step="0.5" min="1"><span class="unit">in</span></div>
+      <div class="row"><input type="number" id="wingReach" value="0" step="0.5" min="0"><span class="unit">in</span></div>
       <div class="hint">How far each wing fans out to the side at the sill. Bigger = gentler surface but wider footprint. It tapers to nothing at the base.</div>
     </div>
 
@@ -238,7 +238,7 @@
 
 const FIELDS = {
   sillW:34, sillH:23, rampL:50, deckTh:0.5,
-  wingReach:18,
+  wingReach:0,
   cleatSpace:4, cleatW:0.75, cleatT:0.375,
   carpetW:36,
   supH:23, splay:9, legStock:1.5, legStockT:0.75,
