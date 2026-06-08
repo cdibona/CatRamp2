@@ -98,41 +98,6 @@
       <div class="hint">e.g. ¾″ plywood = 0.75.</div>
     </div>
 
-    <h2>Side wings (flat fillets)</h2>
-    <div class="field checkbox">
-      <div class="row"><input type="checkbox" id="wingsOn" checked><label for="wingsOn">Include side wings</label></div>
-    </div>
-    <div class="field" id="wingReachField">
-      <label for="wingReach">Wing reach (sideways at the wall)</label>
-      <div class="row"><input type="number" id="wingReach" value="0" step="0.5" min="0"><span class="unit">in</span></div>
-      <div class="hint">How far each wing fans out to the side at the sill. Bigger = gentler surface but wider footprint. It tapers to nothing at the base.</div>
-    </div>
-
-    <h2>Traction cleats</h2>
-    <div class="field checkbox">
-      <div class="row"><input type="checkbox" id="cleatsOn"><label for="cleatsOn">Add grip cleats across the deck</label></div>
-    </div>
-    <div class="field" id="cleatSpaceField">
-      <label for="cleatSpace">Cleat spacing (center to center)</label>
-      <div class="row"><input type="number" id="cleatSpace" value="4" step="0.25" min="1"><span class="unit">in</span></div>
-    </div>
-    <div class="field" id="cleatStockField">
-      <label for="cleatW">Cleat stock: width × thickness</label>
-      <div class="row">
-        <input type="number" id="cleatW" value="0.75" step="0.0625" min="0.125" title="width">
-        <span class="unit">×</span>
-        <input type="number" id="cleatT" value="0.375" step="0.0625" min="0.0625" title="thickness">
-        <span class="unit">in</span>
-      </div>
-    </div>
-
-    <h2>Carpet</h2>
-    <div class="field">
-      <label for="carpetW">Carpet roll width</label>
-      <div class="row"><input type="number" id="carpetW" value="36" step="0.5" min="1"><span class="unit">in</span></div>
-      <div class="hint">Width of the roll/runner you'll buy (runners ≈ 27–36″, broadloom ≈ 144″). Covers deck + both wings.</div>
-    </div>
-
     <h2>Support</h2>
     <div class="field">
       <label for="supportType">Holds the top up with…</label>
@@ -178,6 +143,44 @@
       <label for="lipDrop">Hook lip drop over sill</label>
       <div class="row"><input type="number" id="lipDrop" value="2" step="0.25" min="0"><span class="unit">in</span></div>
       <div class="hint">A cleat at the top that hooks over the sill edge so it can't slide.</div>
+    </div>
+
+    <h2>Side wings (flat fillets)</h2>
+    <div class="field checkbox">
+      <div class="row"><input type="checkbox" id="wingsOn" checked><label for="wingsOn">Include side wings</label></div>
+    </div>
+    <div class="field" id="wingReachField">
+      <label for="wingReach">Wing reach (sideways at the wall)</label>
+      <div class="row"><input type="number" id="wingReach" value="0" step="0.5" min="0"><span class="unit">in</span></div>
+      <div class="hint">How far each wing fans out to the side at the sill. Bigger = gentler surface but wider footprint. It tapers to nothing at the base.</div>
+    </div>
+
+    <h2>Traction cleats</h2>
+    <div class="field checkbox">
+      <div class="row"><input type="checkbox" id="cleatsOn"><label for="cleatsOn">Add grip cleats across the deck</label></div>
+    </div>
+    <div class="field" id="cleatSpaceField">
+      <label for="cleatSpace">Cleat spacing (center to center)</label>
+      <div class="row"><input type="number" id="cleatSpace" value="4" step="0.25" min="1"><span class="unit">in</span></div>
+    </div>
+    <div class="field" id="cleatStockField">
+      <label for="cleatW">Cleat stock: width × thickness</label>
+      <div class="row">
+        <input type="number" id="cleatW" value="0.75" step="0.0625" min="0.125" title="width">
+        <span class="unit">×</span>
+        <input type="number" id="cleatT" value="0.375" step="0.0625" min="0.0625" title="thickness">
+        <span class="unit">in</span>
+      </div>
+    </div>
+
+    <h2>Carpet</h2>
+    <div class="field checkbox">
+      <div class="row"><input type="checkbox" id="carpetOn" checked><label for="carpetOn">Carpet the deck (and wings)</label></div>
+    </div>
+    <div class="field" id="carpetWField">
+      <label for="carpetW">Carpet roll width</label>
+      <div class="row"><input type="number" id="carpetW" value="36" step="0.5" min="1"><span class="unit">in</span></div>
+      <div class="hint">Width of the roll/runner you'll buy (runners ≈ 27–36″, broadloom ≈ 144″). Covers deck + both wings.</div>
     </div>
 
     <div class="btns">
@@ -251,7 +254,7 @@ const FIELDS = {
   supH:23, splay:9, legStock:1.5, legStockT:0.75,
   lipDrop:2
 };
-const CHECKS = { wingsOn:true, cleatsOn:false, floorTiesOn:true, sillHookOn:true };
+const CHECKS = { wingsOn:true, cleatsOn:false, floorTiesOn:true, sillHookOn:true, carpetOn:true };
 const SELECTS = { supportType:'postsFold' };
 
 function $(id){ return document.getElementById(id); }
@@ -278,6 +281,7 @@ function compute(){
   const postMode = support==='posts' || support==='postsFold';
   const sillHookOn=$('sillHookOn').checked;
   const lip=num('lipDrop');
+  const carpetOn=$('carpetOn').checked;
   const carpetW=num('carpetW');
 
   const errs=[];
@@ -340,7 +344,7 @@ function compute(){
           innerW,cleatsOn,cspace,cw,ct,nCleats,
           support,postMode,supH,splay,legW,legT,legLen,legAngle,
           postH,floorTie,floorTiesOn,postTopAngle,rampFloorAngle,postSpacing,nCrossBeams,sillHookOn,lip,
-          carpetW,coverArea,carpetRunFt,carpetSqFt,carpetBuySqYd,deckStrips,errs};
+          carpetOn,carpetW,coverArea,carpetRunFt,carpetSqFt,carpetBuySqYd,deckStrips,errs};
 }
 
 // ---------- cards / alert ----------
@@ -356,7 +360,8 @@ function renderCards(D){
     ['Footprint width', frac(D.footprintW), D.wingsOn?'incl. both wings':'deck width'],
     wingCard,
     supCard,
-    ['Carpet', dec(D.carpetRunFt,1)+' ft', 'of '+frac(D.carpetW)+'-wide roll'],
+    D.carpetOn ? ['Carpet', dec(D.carpetRunFt,1)+' ft', 'of '+frac(D.carpetW)+'-wide roll']
+               : ['Carpet', 'off', 'bare deck'],
   ];
   $('cards').innerHTML=c.map(([k,v,s])=>`<div class="card"><div class="k">${k}</div><div class="v">${v} <small>${s||''}</small></div></div>`).join('');
 }
@@ -650,10 +655,12 @@ function renderTakeoff(D){
     [`Frame stock ${frac(D.legW)}×${frac(D.legT)}`,`${dec(frameFt,1)} lin ft (${D.postMode?'posts + beams'+(D.floorTiesOn?' + runners':''):'legs + links'})`,`${frameLengths} × 8 ft length${frameLengths>1?'s':''}`],
   ];
   if(D.cleatsOn && D.nCleats>0) rows.push([`Cleat stock ${frac(D.cw)}×${frac(D.ct)}`,`${dec(cleatFt,1)} lin ft (${D.nCleats} pcs)`,`${cleatLengths} × 8 ft (or rip from scrap)`]);
-  rows.push([`Carpet (deck${D.wingsOn?' + wings':''}), ${frac(D.carpetW)} wide`,
-    `${dec(D.carpetSqFt,1)} sq ft of coverage`,
-    `${dec(D.carpetRunFt,1)} running ft ≈ ${dec(D.carpetBuySqYd,1)} sq yd (incl. ~25% waste)${D.deckStrips>1?`; deck needs ${D.deckStrips} strips at this width`:''}`]);
-  rows.push([`Carpet tape (double-sided)`,`≈ ${Math.ceil(D.carpetRunFt*2)} ft (perimeter + cross strips)`,`1–2 rolls of ${D.carpetW>=24?2:1.5}″-wide double-sided carpet tape`]);
+  if(D.carpetOn){
+    rows.push([`Carpet (deck${D.wingsOn?' + wings':''}), ${frac(D.carpetW)} wide`,
+      `${dec(D.carpetSqFt,1)} sq ft of coverage`,
+      `${dec(D.carpetRunFt,1)} running ft ≈ ${dec(D.carpetBuySqYd,1)} sq yd (incl. ~25% waste)${D.deckStrips>1?`; deck needs ${D.deckStrips} strips at this width`:''}`]);
+    rows.push([`Carpet tape (double-sided)`,`≈ ${Math.ceil(D.carpetRunFt*2)} ft (perimeter + cross strips)`,`1–2 rolls of ${D.carpetW>=24?2:1.5}″-wide double-sided carpet tape`]);
+  }
   rows.push(['Fasteners & glue','wood glue + 1¼″ screws/brads','1 box screws, 1 bottle glue']);
   rows.push(['Finish (optional)','cat-safe poly or paint','non-toxic finish']);
   tb.innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td class="dim">${r[1]}</td><td>${r[2]}</td></tr>`).join('');
@@ -675,9 +682,16 @@ function renderNotes(D){
   notes.push(D.sillHookOn
     ? `<b>Sill hook:</b> the top cleat drops ${frac(D.lip)} over the sill so the ramp can't creep or slide off.`
     : `<b>Sill hook:</b> off — nothing locks the top to the sill, so lean it firmly and rely on the support to hold position. Add the hook back if it creeps.`);
-  notes.push(`<b>Carpet:</b> covering the deck${D.wingsOn?' + both wings':''} is ${dec(D.carpetSqFt,1)} sq ft. From a ${frac(D.carpetW)}-wide roll that's about ${dec(D.carpetRunFt,1)} running ft (≈ ${dec(D.carpetBuySqYd,1)} sq yd) with waste${D.deckStrips>1?`; the deck needs ${D.deckStrips} side-by-side strips at this width, so a wider roll means fewer seams`:''}. Carpet doubles as traction and is gentle on healing joints.`);
-  notes.push(D.cleatsOn ? `<b>Traction:</b> ${D.nCleats} grip cleats every ${frac(D.cspace)} give his claws purchase — though if you carpet the deck you can skip them.`
-            : `<b>Traction:</b> cleats are off — the carpet provides the grip.`);
+  if(D.carpetOn)
+    notes.push(`<b>Carpet:</b> covering the deck${D.wingsOn?' + both wings':''} is ${dec(D.carpetSqFt,1)} sq ft. From a ${frac(D.carpetW)}-wide roll that's about ${dec(D.carpetRunFt,1)} running ft (≈ ${dec(D.carpetBuySqYd,1)} sq yd) with waste${D.deckStrips>1?`; the deck needs ${D.deckStrips} side-by-side strips at this width, so a wider roll means fewer seams`:''}. Carpet doubles as traction and is gentle on healing joints.`);
+  else
+    notes.push(`<b>Carpet:</b> off — the deck is bare. Add carpet or grip cleats so his claws have something to grab.`);
+  if(D.cleatsOn)
+    notes.push(`<b>Traction:</b> ${D.nCleats} grip cleats every ${frac(D.cspace)} give his claws purchase${D.carpetOn?' — though if you carpet the deck you can skip them':''}.`);
+  else if(D.carpetOn)
+    notes.push(`<b>Traction:</b> cleats are off — the carpet provides the grip.`);
+  else
+    notes.push(`<b>Traction:</b> nothing added — turn on carpet or grip cleats so he can't slip on the bare deck.`);
   notes.push(`<b>Stiffness:</b> ${frac(D.th)} ply at ${frac(D.W)} wide is plenty stiff; if you ever go thinner to save weight, add a center rib under the deck.`);
   $('buildnotes').innerHTML=notes.map(n=>`<li>${n}</li>`).join('');
 }
@@ -692,6 +706,7 @@ function syncSupportUI(){
   $('cleatSpaceField').style.display = cl ? '' : 'none';
   $('cleatStockField').style.display = cl ? '' : 'none';
   $('lipDropField').style.display = $('sillHookOn').checked ? '' : 'none';
+  $('carpetWField').style.display = $('carpetOn').checked ? '' : 'none';
   $('supportHint').textContent =
     v==='posts'     ? 'Two posts under the top corners, hinged to the ramp top, with floor runners back to the base and 2 cross beams between the posts.' :
     v==='postsFold' ? 'Two posts hinged to the ramp top that fold back flat — no floor runners, just the 2 cross beams between them.' :

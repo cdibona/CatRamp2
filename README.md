@@ -23,7 +23,7 @@ Just open `index.html` in any browser — no build, no dependencies, works offli
 - **Ramp:** 50″ along the slope (≈27° — gentle), ¾″ plywood
 - **Wings (optional):** flat triangular panels (not upright walls). Each one hangs on the ramp's side edge with **removable-pin (loose-pin) hinges** and fans down to the floor — **flush against the window wall** (no gap) and **flush to the floor** (no lip). Widest at the sill, tapering to nothing at the base. A bigger *wing reach* makes the surface gentler at the cost of a wider footprint. Untick "Include side wings" to drop them entirely.
 - **Support (pick one):** **folding wall posts + 2 cross beams** (default — hinged to the ramp top, fold back flat, no runners), **wall posts + floor runners**, or a folding **A-frame** (two leg pairs that link at a center pin). The two posts are hinged to the ramp top and locked together by **2 cross beams**; the cut list gives the **post-top hinge angle**, the **ramp-to-floor angle**, and the **post spacing**.
-- **Carpet & tape:** computes coverage for the deck + both wings, the running length from a roll width you set, plus double-sided carpet-tape footage.
+- **Carpet & tape (optional):** computes coverage for the deck + both wings, the running length from a roll width you set, plus double-sided carpet-tape footage.
 - **Sill hook:** a top cleat that drops over the sill edge so the ramp can't slide
 
 The cut list includes the **wing corner angles** (they sum to 180°) so you can lay the triangle out by angle as well as by edge length.
